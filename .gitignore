@@ -1,0 +1,11 @@
+*
+!Makefile
+!Dockerfile
+!*.*
+!*/
+*.hi
+*.o
+
+cabal.project.local
+dist-newstyle/
+
