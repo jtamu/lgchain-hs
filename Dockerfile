@@ -8,7 +8,7 @@ RUN chmod +x "${APP_DIR}/.ghcup/bin/ghcup"
 
 ENV PATH="${APP_DIR}/.cabal/bin:${APP_DIR}/.ghcup/bin:$PATH"
 
-RUN ghcup install ghc recommended --set
+RUN ghcup install ghc 9.4.8 --set
 RUN ghcup install cabal recommended --set
 RUN ghcup install hls recommended --set
 RUN cabal update
