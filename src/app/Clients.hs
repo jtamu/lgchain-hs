@@ -1,10 +1,12 @@
 module Clients where
 
 import Data.ByteString.Char8 qualified as BS
+import Data.Map.Strict qualified as M
+import Data.Text qualified as T
 import Network.HTTP.Conduit (parseRequest_)
 import Network.HTTP.Simple (getResponseBody, httpJSON, setRequestBodyJSON, setRequestHeaders)
 import Network.HTTP.Types (hAuthorization, hContentType)
-import Requests (Prompt, ReqBody (ReqBody))
+import Requests (Prompt, ReqBody (ReqBody), ReqMessage (ReqMessage))
 import Responses (ResBody (choices), ResMessage (ResMessage), ResMessageContent (content))
 import System.Environment (getEnv)
 
@@ -16,6 +18,14 @@ instance Show OpenAIModelName where
 
 newtype ChatOpenAI = ChatOpenAI {modelName :: OpenAIModelName} deriving (Show)
 
+type FormatMap = M.Map T.Text T.Text
+
+formatAll :: T.Text -> FormatMap -> T.Text
+formatAll = M.foldlWithKey (\acc k v -> T.replace k v acc)
+
+formatPrompt :: Prompt -> FormatMap -> Prompt
+formatPrompt prompt formatMap = map (\(ReqMessage role content) -> ReqMessage role (formatAll content formatMap)) prompt
+
 openAIModelNameStr :: ChatOpenAI -> String
 openAIModelNameStr (ChatOpenAI modelName) = show modelName
 
@@ -24,10 +34,10 @@ strOutput resBody = case choices resBody of
   (ResMessage message : _) -> Just $ content message
   _ -> Nothing
 
-invoke :: ChatOpenAI -> Prompt -> IO ResBody
-invoke model prompt = do
+invoke :: ChatOpenAI -> Prompt -> FormatMap -> IO ResBody
+invoke model prompt formatMap = do
   openaiApiKey <- getEnv "OPENAI_API_KEY"
-  let reqbody = ReqBody (openAIModelNameStr model) prompt
+  let reqbody = ReqBody (openAIModelNameStr model) (formatPrompt prompt formatMap)
   let req = setRequestHeaders [(hAuthorization, BS.pack $ "Bearer " ++ openaiApiKey), (hContentType, BS.pack "application/json")] $ setRequestBodyJSON reqbody $ parseRequest_ "POST https://api.openai.com/v1/chat/completions"
   res <- httpJSON req
   return (getResponseBody res :: ResBody)

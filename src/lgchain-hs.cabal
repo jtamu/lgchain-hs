@@ -78,6 +78,7 @@ executable lgchain-hs
     , aeson
     , base          ^>=4.17.2.1
     , bytestring
+    , containers
     , http-conduit
     , http-types
     , text

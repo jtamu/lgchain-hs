@@ -2,7 +2,7 @@ module Requests where
 
 import Data.Aeson (ToJSON, Value (String))
 import Data.Aeson.Types (toJSON)
-import Data.Text (pack)
+import Data.Text (Text, pack)
 import GHC.Generics (Generic)
 
 data Role = System | User
@@ -15,7 +15,7 @@ instance ToJSON Role where
   toJSON System = String (pack "system")
   toJSON User = String (pack "user")
 
-data ReqMessage = ReqMessage {role :: Role, content :: String} deriving (Show, Generic)
+data ReqMessage = ReqMessage {role :: Role, content :: Text} deriving (Show, Generic)
 
 instance ToJSON ReqMessage
 
