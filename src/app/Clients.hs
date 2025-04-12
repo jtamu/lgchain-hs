@@ -6,7 +6,7 @@ import Data.Text qualified as T
 import Network.HTTP.Conduit (parseRequest_)
 import Network.HTTP.Simple (getResponseBody, httpJSON, setRequestBodyJSON, setRequestHeaders)
 import Network.HTTP.Types (hAuthorization, hContentType)
-import Requests (Prompt, ReqBody (ReqBody), ReqMessage (ReqMessage))
+import Requests (Prompt, ReqBody (ReqBody), ReqMessage (ReqMessage), ResponseFormat)
 import Responses (ResBody (choices), ResMessage (ResMessage), ResMessageContent (content))
 import System.Environment (getEnv)
 
@@ -34,10 +34,13 @@ strOutput resBody = case choices resBody of
   (ResMessage message : _) -> Just $ content message
   _ -> Nothing
 
-invoke :: ChatOpenAI -> Prompt -> FormatMap -> IO ResBody
-invoke model prompt formatMap = do
+buildReqBody :: ChatOpenAI -> Prompt -> FormatMap -> Maybe ResponseFormat -> ReqBody
+buildReqBody model prompt formatMap = ReqBody (openAIModelNameStr model) (formatPrompt prompt formatMap)
+
+invoke :: ChatOpenAI -> Prompt -> FormatMap -> Maybe ResponseFormat -> IO ResBody
+invoke model prompt formatMap resFormat = do
   openaiApiKey <- getEnv "OPENAI_API_KEY"
-  let reqbody = ReqBody (openAIModelNameStr model) (formatPrompt prompt formatMap)
+  let reqbody = buildReqBody model prompt formatMap resFormat
   let req = setRequestHeaders [(hAuthorization, BS.pack $ "Bearer " ++ openaiApiKey), (hContentType, BS.pack "application/json")] $ setRequestBodyJSON reqbody $ parseRequest_ "POST https://api.openai.com/v1/chat/completions"
   res <- httpJSON req
   return (getResponseBody res :: ResBody)
