@@ -76,11 +76,12 @@ executable lgchain-hs
   -- Other library packages from which modules are imported.
   build-depends:
     , aeson
-    , base          ^>=4.17.2.1
+    , base                ^>=4.17.2.1
     , bytestring
     , containers
     , http-conduit
     , http-types
+    , string-conversions
     , text
     , utf8-string
 

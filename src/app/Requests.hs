@@ -39,7 +39,6 @@ instance ToJSON JsonSchemaProperty where
     object $
       maybe [] (\x -> ["description" .= x]) description
         ++ ["type" .= propertyType]
-        -- ["description" .= description, "type" .= propertyType]
         ++ maybe [] (\x -> ["items" .= x]) items
         ++ maybe [] (\x -> ["unique_items" .= x]) uniqueItems
 
