@@ -7,6 +7,8 @@ data ReqMessage = ReqMessage {role :: String, content :: String} deriving (Show,
 
 instance ToJSON ReqMessage
 
-data ReqBody = ReqBody {model :: String, messages :: [ReqMessage]} deriving (Show, Generic)
+type Prompt = [ReqMessage]
+
+data ReqBody = ReqBody {model :: String, messages :: Prompt} deriving (Show, Generic)
 
 instance ToJSON ReqBody

@@ -1,21 +1,14 @@
 module Main where
 
-import Data.ByteString.Char8 qualified as BS
-import Network.HTTP.Conduit (parseRequest_)
-import Network.HTTP.Simple (getResponseBody, httpJSON, setRequestBodyJSON, setRequestHeaders)
-import Network.HTTP.Types (hAuthorization, hContentType)
-import Requests (ReqBody (ReqBody), ReqMessage (ReqMessage))
-import Responses (ResBody (choices), ResMessage (ResMessage), ResMessageContent (content))
-import System.Environment (getEnv)
+import Clients (ChatOpenAI (ChatOpenAI), invoke, strOutput)
+import Requests (ReqMessage (ReqMessage))
 
 main :: IO ()
 main = do
-  openaiApiKey <- getEnv "OPENAI_API_KEY"
-  let reqbody = ReqBody "gpt-4o" [ReqMessage "system" "語尾にニャーとつけてください", ReqMessage "user" "猫は好きですか？"]
-  let req = setRequestHeaders [(hAuthorization, BS.pack $ "Bearer " ++ openaiApiKey), (hContentType, BS.pack "application/json")] $ setRequestBodyJSON reqbody $ parseRequest_ "POST https://api.openai.com/v1/chat/completions"
-  res <- httpJSON req
-  let resBody = getResponseBody res :: ResBody
-
-  case choices resBody of
-    (ResMessage message : _) -> putStrLn $ content message
-    _ -> putStrLn "No response received"
+  let prompt = [ReqMessage "system" "語尾にニャーとつけてください", ReqMessage "user" "猫は好きですか？"]
+  let model = ChatOpenAI "gpt-4o"
+  res <- invoke model prompt
+  let out = strOutput res
+  case out of
+    Just content -> putStrLn content
+    Nothing -> putStrLn "No response received"

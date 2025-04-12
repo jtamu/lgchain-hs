@@ -66,6 +66,7 @@ executable lgchain-hs
   -- Modules included in this executable, other than Main.
   -- cabal-fmt: expand app -Main
   other-modules:
+    Clients
     Requests
     Responses
 
