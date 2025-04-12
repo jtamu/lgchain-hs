@@ -23,8 +23,8 @@ type FormatMap = M.Map T.Text T.Text
 formatAll :: T.Text -> FormatMap -> T.Text
 formatAll = M.foldlWithKey (\acc k v -> T.replace k v acc)
 
-formatPrompt :: Prompt -> FormatMap -> Prompt
-formatPrompt prompt formatMap = map (\(ReqMessage role content) -> ReqMessage role (formatAll content formatMap)) prompt
+formatPrompt :: FormatMap -> Prompt -> Prompt
+formatPrompt formatMap prompt = [ReqMessage role (formatAll content formatMap) | ReqMessage role content <- prompt]
 
 openAIModelNameStr :: ChatOpenAI -> String
 openAIModelNameStr (ChatOpenAI modelName) = show modelName
@@ -35,7 +35,7 @@ strOutput resBody = case choices resBody of
   _ -> Nothing
 
 buildReqBody :: ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe ResponseFormat -> ReqBody
-buildReqBody model prompt (Just formatMap) = ReqBody (openAIModelNameStr model) (formatPrompt prompt formatMap)
+buildReqBody model prompt (Just formatMap) = ReqBody (openAIModelNameStr model) (formatPrompt formatMap prompt)
 buildReqBody model prompt Nothing = ReqBody (openAIModelNameStr model) prompt
 
 invoke :: ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe ResponseFormat -> IO ResBody
