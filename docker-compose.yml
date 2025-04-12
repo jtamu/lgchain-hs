@@ -5,5 +5,7 @@ services:
     build: .
     volumes:
       - ./src:/opt/app/src
+    env_file:
+      - .env
     tty: true
 

@@ -5,6 +5,7 @@
 !*/
 *.hi
 *.o
+.env
 
 cabal.project.local
 dist-newstyle/
