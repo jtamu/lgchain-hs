@@ -6,7 +6,6 @@ import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O), invoke, strOut
 import Codec.Binary.UTF8.String qualified as UTF8
 import Data.Aeson (FromJSON, decode)
 import Data.ByteString.Lazy qualified as BS
-import Data.Map qualified as M
 import GHC.Generics (Generic)
 import Requests (ReqMessage (ReqMessage), Role (System, User), sampleResFormat)
 
@@ -22,8 +21,7 @@ main :: IO ()
 main = do
   let prompt = [ReqMessage System "ユーザが入力した料理のレシピを考えてください。また、日本語で回答してください。", ReqMessage User "カレー"]
   let model = ChatOpenAI GPT4O
-  let formatMap = M.fromList [("{subject}", "猫")]
-  res <- invoke model prompt formatMap $ Just sampleResFormat
+  res <- invoke model prompt Nothing $ Just sampleResFormat
   let out = strOutput res
   case out of
     Just content ->

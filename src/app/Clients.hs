@@ -34,10 +34,11 @@ strOutput resBody = case choices resBody of
   (ResMessage message : _) -> Just $ content message
   _ -> Nothing
 
-buildReqBody :: ChatOpenAI -> Prompt -> FormatMap -> Maybe ResponseFormat -> ReqBody
-buildReqBody model prompt formatMap = ReqBody (openAIModelNameStr model) (formatPrompt prompt formatMap)
+buildReqBody :: ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe ResponseFormat -> ReqBody
+buildReqBody model prompt (Just formatMap) = ReqBody (openAIModelNameStr model) (formatPrompt prompt formatMap)
+buildReqBody model prompt Nothing = ReqBody (openAIModelNameStr model) prompt
 
-invoke :: ChatOpenAI -> Prompt -> FormatMap -> Maybe ResponseFormat -> IO ResBody
+invoke :: ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe ResponseFormat -> IO ResBody
 invoke model prompt formatMap resFormat = do
   openaiApiKey <- getEnv "OPENAI_API_KEY"
   let reqbody = buildReqBody model prompt formatMap resFormat
