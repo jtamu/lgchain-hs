@@ -1,11 +1,11 @@
 module Main where
 
 import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O), invoke, strOutput)
-import Requests (ReqMessage (ReqMessage))
+import Requests (ReqMessage (ReqMessage), Role (System, User))
 
 main :: IO ()
 main = do
-  let prompt = [ReqMessage "system" "語尾にニャーとつけてください", ReqMessage "user" "猫は好きですか？"]
+  let prompt = [ReqMessage System "語尾にニャーとつけてください", ReqMessage User "猫は好きですか？"]
   let model = ChatOpenAI GPT4O
   res <- invoke model prompt
   let out = strOutput res
