@@ -25,10 +25,19 @@ instance ToJSON ReqMessage
 
 type Prompt = [ReqMessage]
 
+data PropertyType = IntType | StringType | DoubleType | BooleanType | ListType deriving (Show)
+
+instance ToJSON PropertyType where
+  toJSON IntType = String $ pack "integer"
+  toJSON StringType = String $ pack "string"
+  toJSON DoubleType = String $ pack "number"
+  toJSON BooleanType = String $ pack "boolean"
+  toJSON ListType = String $ pack "array"
+
 -- JSON Schema for structured output
 data JsonSchemaProperty = JsonSchemaProperty
   { description :: Maybe Text,
-    propertyType :: Text,
+    propertyType :: PropertyType,
     items :: Maybe JsonSchemaProperty,
     uniqueItems :: Maybe Bool
   }
@@ -100,12 +109,12 @@ sampleResFormat =
                     [ ( "ingredients",
                         JsonSchemaProperty
                           { description = Just "ingredients of the dish",
-                            propertyType = "array",
+                            propertyType = ListType,
                             items =
                               Just
                                 ( JsonSchemaProperty
                                     { description = Nothing,
-                                      propertyType = "string",
+                                      propertyType = StringType,
                                       items = Nothing,
                                       uniqueItems = Nothing
                                     }
@@ -116,12 +125,12 @@ sampleResFormat =
                       ( "steps",
                         JsonSchemaProperty
                           { description = Just "steps to make the dish",
-                            propertyType = "array",
+                            propertyType = ListType,
                             items =
                               Just
                                 ( JsonSchemaProperty
                                     { description = Nothing,
-                                      propertyType = "string",
+                                      propertyType = StringType,
                                       items = Nothing,
                                       uniqueItems = Nothing
                                     }
