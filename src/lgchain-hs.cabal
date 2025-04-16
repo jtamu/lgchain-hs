@@ -69,9 +69,10 @@ executable lgchain-hs
     Clients
     Requests
     Responses
+    Utils
 
   -- LANGUAGE extensions used by modules in this package.
-  -- other-extensions:
+  other-extensions: TemplateHaskell
 
   -- Other library packages from which modules are imported.
   build-depends:
@@ -81,7 +82,9 @@ executable lgchain-hs
     , containers
     , http-conduit
     , http-types
+    , split
     , string-conversions
+    , template-haskell
     , text
     , utf8-string
 

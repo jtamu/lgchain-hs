@@ -1,5 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveLift #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Requests where
 
@@ -8,6 +10,18 @@ import Data.Aeson.Key (fromText)
 import Data.Aeson.Types (toJSON)
 import Data.Text (Text, pack)
 import GHC.Generics (Generic)
+import Language.Haskell.TH
+  ( Con (RecC),
+    Dec (DataD),
+    Info (TyConI),
+    Name,
+    Q,
+    Type (AppT, ConT, ListT),
+    conT,
+    reify,
+  )
+import Language.Haskell.TH.Syntax (Lift)
+import Utils (takeAfterLastDot)
 
 data Role = System | User
 
@@ -25,7 +39,7 @@ instance ToJSON ReqMessage
 
 type Prompt = [ReqMessage]
 
-data PropertyType = IntType | StringType | DoubleType | BooleanType | ListType deriving (Show)
+data PropertyType = IntType | StringType | DoubleType | BooleanType | ListType deriving (Show, Lift)
 
 instance ToJSON PropertyType where
   toJSON IntType = String $ pack "integer"
@@ -41,7 +55,7 @@ data JsonSchemaProperty = JsonSchemaProperty
     items :: Maybe JsonSchemaProperty,
     uniqueItems :: Maybe Bool
   }
-  deriving (Show, Generic)
+  deriving (Show, Generic, Lift)
 
 instance ToJSON JsonSchemaProperty where
   toJSON (JsonSchemaProperty description propertyType items uniqueItems) =
@@ -56,7 +70,7 @@ data JsonSchema = JsonSchema
     properties :: [(Text, JsonSchemaProperty)],
     required :: [Text]
   }
-  deriving (Show, Generic)
+  deriving (Show, Generic, Lift)
 
 instance ToJSON JsonSchema where
   toJSON (JsonSchema schemaType properties required) =
@@ -66,7 +80,7 @@ data JsonSchemaDefinition = JsonSchemaDefinition
   { name :: Text,
     schema :: JsonSchema
   }
-  deriving (Show, Generic)
+  deriving (Show, Generic, Lift)
 
 instance ToJSON JsonSchemaDefinition where
   toJSON (JsonSchemaDefinition name schema) =
@@ -95,51 +109,36 @@ instance ToJSON ReqBody where
       ["model" .= model, "messages" .= messages]
         ++ maybe [] (\x -> ["response_format" .= x]) responseFormat
 
-sampleResFormat :: ResponseFormat
-sampleResFormat =
-  ResponseFormat
-    { formatType = "json_schema",
-      jsonSchema =
-        JsonSchemaDefinition
-          { name = "Recipe",
-            schema =
-              JsonSchema
-                { schemaType = "object",
-                  properties =
-                    [ ( "ingredients",
-                        JsonSchemaProperty
-                          { description = Just "ingredients of the dish",
-                            propertyType = ListType,
-                            items =
-                              Just
-                                ( JsonSchemaProperty
-                                    { description = Nothing,
-                                      propertyType = StringType,
-                                      items = Nothing,
-                                      uniqueItems = Nothing
-                                    }
-                                ),
-                            uniqueItems = Just True
-                          }
-                      ),
-                      ( "steps",
-                        JsonSchemaProperty
-                          { description = Just "steps to make the dish",
-                            propertyType = ListType,
-                            items =
-                              Just
-                                ( JsonSchemaProperty
-                                    { description = Nothing,
-                                      propertyType = StringType,
-                                      items = Nothing,
-                                      uniqueItems = Nothing
-                                    }
-                                ),
-                            uniqueItems = Just True
-                          }
-                      )
-                    ],
-                  required = ["ingredients", "steps"]
-                }
-          }
-    }
+class JsonSchemaConvertable a where
+  convertJson :: a -> JsonSchemaDefinition
+
+deriveJsonSchema :: Name -> Q [Dec]
+deriveJsonSchema name = do
+  TyConI (DataD _ _ _ _ [RecC _ fields] _) <- reify name
+  let tup = [(fname, ftype) | (fname, _, ftype) <- fields]
+      edefinition = mapSchemaDefinition tup
+   in case edefinition of
+        Right definition -> [d|instance JsonSchemaConvertable $(conT name) where convertJson _ = definition|]
+        Left e -> fail e
+
+mapSchemaDefinition :: [(Name, Type)] -> Either String JsonSchemaDefinition
+mapSchemaDefinition a = case sequenceA [mapSchema tup | tup <- a] of
+  Right props ->
+    -- TODO: name, required
+    Right JsonSchemaDefinition {name = "Recipe", schema = JsonSchema {schemaType = "object", properties = props, required = [name | (name, _) <- props]}}
+  Left err -> Left err
+
+mapSchema :: (Name, Type) -> Either String (Text, JsonSchemaProperty)
+mapSchema (name, typ) = do
+  prop <- foldSchemaProperty typ
+  return (pack $ takeAfterLastDot $ show name, prop)
+
+foldSchemaProperty :: Type -> Either String JsonSchemaProperty
+foldSchemaProperty (ConT a) | a == ''String = Right $ JsonSchemaProperty {description = Nothing, propertyType = StringType, items = Nothing, uniqueItems = Nothing}
+foldSchemaProperty (ConT a) | a == ''Int = Right $ JsonSchemaProperty {description = Nothing, propertyType = IntType, items = Nothing, uniqueItems = Nothing}
+foldSchemaProperty (ConT a) | a == ''Double = Right $ JsonSchemaProperty {description = Nothing, propertyType = DoubleType, items = Nothing, uniqueItems = Nothing}
+foldSchemaProperty (ConT a) | a == ''Bool = Right $ JsonSchemaProperty {description = Nothing, propertyType = BooleanType, items = Nothing, uniqueItems = Nothing}
+foldSchemaProperty (AppT ListT (ConT a)) = case foldSchemaProperty (ConT a) of
+  Right prop -> Right $ JsonSchemaProperty {description = Nothing, propertyType = ListType, items = Just prop, uniqueItems = Just True}
+  Left err -> Left err
+foldSchemaProperty _ = Left "Unsupported type"

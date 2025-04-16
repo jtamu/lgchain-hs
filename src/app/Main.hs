@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Main where
 
@@ -7,7 +8,7 @@ import Codec.Binary.UTF8.String qualified as UTF8
 import Data.Aeson (FromJSON, decode)
 import Data.ByteString.Lazy qualified as BS
 import GHC.Generics (Generic)
-import Requests (ReqMessage (ReqMessage), Role (System, User), sampleResFormat)
+import Requests (ReqMessage (ReqMessage), Role (System, User), deriveJsonSchema)
 
 data Recipe = Recipe
   { ingredients :: [String],
@@ -17,11 +18,14 @@ data Recipe = Recipe
 
 instance FromJSON Recipe
 
+deriveJsonSchema ''Recipe
+
 main :: IO ()
 main = do
   let prompt = [ReqMessage System "ユーザが入力した料理のレシピを考えてください。また、日本語で回答してください。", ReqMessage User "カレー"]
   let model = ChatOpenAI GPT4O
-  res <- invoke model prompt Nothing $ Just sampleResFormat
+  -- TODO: structedOutput
+  res <- invoke model prompt Nothing $ Just (undefined :: Recipe)
   let out = strOutput res
   case out of
     Just content ->

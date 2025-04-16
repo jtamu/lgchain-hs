@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Clients where
 
 import Data.ByteString.Char8 qualified as BS
@@ -6,7 +8,7 @@ import Data.Text qualified as T
 import Network.HTTP.Conduit (parseRequest_)
 import Network.HTTP.Simple (getResponseBody, httpJSON, setRequestBodyJSON, setRequestHeaders)
 import Network.HTTP.Types (hAuthorization, hContentType)
-import Requests (Prompt, ReqBody (ReqBody), ReqMessage (ReqMessage), ResponseFormat)
+import Requests (JsonSchemaConvertable (convertJson), Prompt, ReqBody (ReqBody), ReqMessage (ReqMessage), ResponseFormat (ResponseFormat))
 import Responses (ResBody (choices), ResMessage (ResMessage), ResMessageContent (content))
 import System.Environment (getEnv)
 
@@ -34,11 +36,15 @@ strOutput resBody = case choices resBody of
   (ResMessage message : _) -> Just $ content message
   _ -> Nothing
 
-buildReqBody :: ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe ResponseFormat -> ReqBody
-buildReqBody model prompt (Just formatMap) = ReqBody (openAIModelNameStr model) (formatPrompt formatMap prompt)
-buildReqBody model prompt Nothing = ReqBody (openAIModelNameStr model) prompt
+buildReqBody :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe a -> ReqBody
+buildReqBody model prompt maybeFormat maybeData = ReqBody (openAIModelNameStr model) formattedPrompt resFormat
+  where
+    formattedPrompt = maybe prompt (`formatPrompt` prompt) maybeFormat
+    resFormat = do
+      dataSchema <- convertJson <$> maybeData
+      return $ ResponseFormat "json_schema" dataSchema
 
-invoke :: ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe ResponseFormat -> IO ResBody
+invoke :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe a -> IO ResBody
 invoke model prompt formatMap resFormat = do
   openaiApiKey <- getEnv "OPENAI_API_KEY"
   let reqbody = buildReqBody model prompt formatMap resFormat
