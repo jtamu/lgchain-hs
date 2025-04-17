@@ -2,7 +2,10 @@
 
 module Clients where
 
+import Codec.Binary.UTF8.String qualified as UTF8
+import Data.Aeson (decode)
 import Data.ByteString.Char8 qualified as BS
+import Data.ByteString.Lazy qualified as LBS
 import Data.Map.Strict qualified as M
 import Data.Text qualified as T
 import Network.HTTP.Conduit (parseRequest_)
@@ -35,6 +38,9 @@ strOutput :: ResBody -> Maybe String
 strOutput resBody = case choices resBody of
   (ResMessage message : _) -> Just $ content message
   _ -> Nothing
+
+structedOutput :: (JsonSchemaConvertable a) => ResBody -> Maybe a
+structedOutput res = strOutput res >>= decode . LBS.pack . UTF8.encode
 
 buildReqBody :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe a -> ReqBody
 buildReqBody model prompt maybeFormat maybeData = ReqBody (openAIModelNameStr model) formattedPrompt resFormat

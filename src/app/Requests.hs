@@ -5,7 +5,7 @@
 
 module Requests where
 
-import Data.Aeson (ToJSON, Value (String), object, (.=))
+import Data.Aeson (FromJSON, ToJSON, Value (String), object, (.=))
 import Data.Aeson.Key (fromText)
 import Data.Aeson.Types (toJSON)
 import Data.Text (Text, pack)
@@ -109,7 +109,7 @@ instance ToJSON ReqBody where
       ["model" .= model, "messages" .= messages]
         ++ maybe [] (\x -> ["response_format" .= x]) responseFormat
 
-class JsonSchemaConvertable a where
+class (FromJSON a) => JsonSchemaConvertable a where
   convertJson :: a -> JsonSchemaDefinition
 
 deriveJsonSchema :: Name -> Q [Dec]
