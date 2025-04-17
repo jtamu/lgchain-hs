@@ -34,13 +34,26 @@ formatPrompt formatMap prompt = [ReqMessage role (formatAll content formatMap) |
 openAIModelNameStr :: ChatOpenAI -> String
 openAIModelNameStr (ChatOpenAI modelName) = show modelName
 
-strOutput :: ResBody -> Maybe String
-strOutput resBody = case choices resBody of
+data Output a = StrOutput String | StructedOutput a
+
+extractStrOutput :: ResBody -> Maybe String
+extractStrOutput resBody = case choices resBody of
   (ResMessage message : _) -> Just $ content message
   _ -> Nothing
 
-structedOutput :: (JsonSchemaConvertable a) => ResBody -> Maybe a
-structedOutput res = strOutput res >>= decode . LBS.pack . UTF8.encode
+strOutput :: Maybe (Output a) -> Maybe String
+strOutput (Just (StrOutput str)) = Just str
+strOutput _ = Nothing
+
+extractStructedOutput :: (JsonSchemaConvertable a) => ResBody -> Maybe (Output a)
+extractStructedOutput res = do
+  str <- extractStrOutput res
+  decoded <- decode $ LBS.pack $ UTF8.encode str
+  return $ StructedOutput decoded
+
+structedOutput :: Maybe (Output a) -> Maybe a
+structedOutput (Just (StructedOutput struct)) = Just struct
+structedOutput _ = Nothing
 
 buildReqBody :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe a -> ReqBody
 buildReqBody model prompt maybeFormat maybeData = ReqBody (openAIModelNameStr model) formattedPrompt resFormat
@@ -50,10 +63,13 @@ buildReqBody model prompt maybeFormat maybeData = ReqBody (openAIModelNameStr mo
       dataSchema <- convertJson <$> maybeData
       return $ ResponseFormat "json_schema" dataSchema
 
-invoke :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe a -> IO ResBody
+invoke :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe a -> IO (Maybe (Output a))
 invoke model prompt formatMap resFormat = do
   openaiApiKey <- getEnv "OPENAI_API_KEY"
   let reqbody = buildReqBody model prompt formatMap resFormat
   let req = setRequestHeaders [(hAuthorization, BS.pack $ "Bearer " ++ openaiApiKey), (hContentType, BS.pack "application/json")] $ setRequestBodyJSON reqbody $ parseRequest_ "POST https://api.openai.com/v1/chat/completions"
   res <- httpJSON req
-  return (getResponseBody res :: ResBody)
+  let resBody = (getResponseBody res :: ResBody)
+  case resFormat of
+    Just _ -> return $ extractStructedOutput resBody
+    Nothing -> return $ StrOutput <$> extractStrOutput resBody
