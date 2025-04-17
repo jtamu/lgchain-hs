@@ -125,7 +125,11 @@ mapSchemaDefinition :: [(Name, Type)] -> Either String JsonSchemaDefinition
 mapSchemaDefinition a = case sequenceA [mapSchema tup | tup <- a] of
   Right props ->
     -- TODO: name, required
-    Right JsonSchemaDefinition {name = "Recipe", schema = JsonSchema {schemaType = "object", properties = props, required = [name | (name, _) <- props]}}
+    Right
+      JsonSchemaDefinition
+        { name = "Recipe",
+          schema = JsonSchema {schemaType = "object", properties = props, required = [name | (name, _) <- props]}
+        }
   Left err -> Left err
 
 mapSchema :: (Name, Type) -> Either String (Text, JsonSchemaProperty)
@@ -134,11 +138,20 @@ mapSchema (name, typ) = do
   return (pack $ takeAfterLastDot $ show name, prop)
 
 foldSchemaProperty :: Type -> Either String JsonSchemaProperty
-foldSchemaProperty (ConT a) | a == ''String = Right $ JsonSchemaProperty {description = Nothing, propertyType = StringType, items = Nothing, uniqueItems = Nothing}
-foldSchemaProperty (ConT a) | a == ''Int = Right $ JsonSchemaProperty {description = Nothing, propertyType = IntType, items = Nothing, uniqueItems = Nothing}
-foldSchemaProperty (ConT a) | a == ''Double = Right $ JsonSchemaProperty {description = Nothing, propertyType = DoubleType, items = Nothing, uniqueItems = Nothing}
-foldSchemaProperty (ConT a) | a == ''Bool = Right $ JsonSchemaProperty {description = Nothing, propertyType = BooleanType, items = Nothing, uniqueItems = Nothing}
+foldSchemaProperty (ConT a)
+  | a == ''String =
+      Right $ JsonSchemaProperty {description = Nothing, propertyType = StringType, items = Nothing, uniqueItems = Nothing}
+foldSchemaProperty (ConT a)
+  | a == ''Int =
+      Right $ JsonSchemaProperty {description = Nothing, propertyType = IntType, items = Nothing, uniqueItems = Nothing}
+foldSchemaProperty (ConT a)
+  | a == ''Double =
+      Right $ JsonSchemaProperty {description = Nothing, propertyType = DoubleType, items = Nothing, uniqueItems = Nothing}
+foldSchemaProperty (ConT a)
+  | a == ''Bool =
+      Right $ JsonSchemaProperty {description = Nothing, propertyType = BooleanType, items = Nothing, uniqueItems = Nothing}
 foldSchemaProperty (AppT ListT (ConT a)) = case foldSchemaProperty (ConT a) of
-  Right prop -> Right $ JsonSchemaProperty {description = Nothing, propertyType = ListType, items = Just prop, uniqueItems = Just True}
+  Right prop ->
+    Right $ JsonSchemaProperty {description = Nothing, propertyType = ListType, items = Just prop, uniqueItems = Just True}
   Left err -> Left err
 foldSchemaProperty _ = Left "Unsupported type"

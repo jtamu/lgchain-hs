@@ -67,7 +67,10 @@ invoke :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> Maybe FormatMap -
 invoke model prompt formatMap resFormat = do
   openaiApiKey <- getEnv "OPENAI_API_KEY"
   let reqbody = buildReqBody model prompt formatMap resFormat
-  let req = setRequestHeaders [(hAuthorization, BS.pack $ "Bearer " ++ openaiApiKey), (hContentType, BS.pack "application/json")] $ setRequestBodyJSON reqbody $ parseRequest_ "POST https://api.openai.com/v1/chat/completions"
+  let req =
+        setRequestHeaders [(hAuthorization, BS.pack $ "Bearer " ++ openaiApiKey), (hContentType, BS.pack "application/json")] $
+          setRequestBodyJSON reqbody $
+            parseRequest_ "POST https://api.openai.com/v1/chat/completions"
   res <- httpJSON req
   let resBody = (getResponseBody res :: ResBody)
   case resFormat of
