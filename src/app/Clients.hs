@@ -34,7 +34,9 @@ formatPrompt formatMap prompt = [ReqMessage role (formatAll content formatMap) |
 openAIModelNameStr :: ChatOpenAI -> String
 openAIModelNameStr (ChatOpenAI modelName) = show modelName
 
-data Output a = StrOutput String | StructedOutput a
+data Output a where
+  StrOutput :: String -> Output a
+  StructedOutput :: (JsonSchemaConvertable a) => a -> Output a
 
 extractStrOutput :: ResBody -> Maybe String
 extractStrOutput resBody = case choices resBody of
@@ -55,18 +57,23 @@ structedOutput :: Maybe (Output a) -> Maybe a
 structedOutput (Just (StructedOutput struct)) = Just struct
 structedOutput _ = Nothing
 
-buildReqBody :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe a -> ReqBody
-buildReqBody model prompt maybeFormat maybeData = ReqBody (openAIModelNameStr model) formattedPrompt resFormat
+buildReqBody :: (JsonSchemaConvertable a) => Chain a -> Maybe FormatMap -> ReqBody
+buildReqBody (Chain model prompt maybeData) maybeFormat =
+  ReqBody (openAIModelNameStr model) formattedPrompt resFormat
   where
     formattedPrompt = maybe prompt (`formatPrompt` prompt) maybeFormat
     resFormat = do
       dataSchema <- convertJson <$> maybeData
       return $ ResponseFormat "json_schema" dataSchema
 
-invoke :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> Maybe FormatMap -> Maybe a -> IO (Maybe (Output a))
-invoke model prompt formatMap resFormat = do
+-- Maybe Schemaにしたい
+data Chain a where
+  Chain :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> (Maybe a) -> Chain a
+
+invoke :: (JsonSchemaConvertable a) => Chain a -> Maybe FormatMap -> IO (Maybe (Output a))
+invoke chain@(Chain _ _ resFormat) formatMap = do
   openaiApiKey <- getEnv "OPENAI_API_KEY"
-  let reqbody = buildReqBody model prompt formatMap resFormat
+  let reqbody = buildReqBody chain formatMap
   let req =
         setRequestHeaders [(hAuthorization, BS.pack $ "Bearer " ++ openaiApiKey), (hContentType, BS.pack "application/json")] $
           setRequestBodyJSON reqbody $
