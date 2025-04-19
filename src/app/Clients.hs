@@ -66,7 +66,6 @@ buildReqBody (Chain model prompt maybeData) maybeFormat =
       dataSchema <- convertJson <$> maybeData
       return $ ResponseFormat "json_schema" dataSchema
 
--- Maybe Schemaにしたい
 data Chain a where
   Chain :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> (Maybe a) -> Chain a
 

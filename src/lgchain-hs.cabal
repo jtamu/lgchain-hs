@@ -56,6 +56,41 @@ common warnings
     -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates
     -Wmissing-import-lists -Wcompat
 
+library
+  -- Import common warning flags.
+  import:           warnings
+
+  -- Modules exported by the library.
+  -- cabal-fmt: expand app -Main
+  exposed-modules:
+    Clients
+    Requests
+    Responses
+    Utils
+
+  -- LANGUAGE extensions used by modules in this package.
+  other-extensions: TemplateHaskell
+
+  -- Other library packages from which modules are imported.
+  build-depends:
+    , aeson
+    , base                ^>=4.17.2.1
+    , bytestring
+    , containers
+    , http-conduit
+    , http-types
+    , split
+    , string-conversions
+    , template-haskell
+    , text
+    , utf8-string
+
+  -- Directories containing source files.
+  hs-source-dirs:   app
+
+  -- Base language which the package is written in.
+  default-language: GHC2021
+
 executable lgchain-hs
   -- Import common warning flags.
   import:           warnings
@@ -92,4 +127,21 @@ executable lgchain-hs
   hs-source-dirs:   app
 
   -- Base language which the package is written in.
+  default-language: GHC2021
+
+common test-depends
+  build-depends:      hspec
+  build-tool-depends: hspec-discover:hspec-discover
+
+test-suite spec
+  import:          warnings, test-depends
+  type:            exitcode-stdio-1.0
+  hs-source-dirs:  test
+  main-is:         Spec.hs
+
+  -- cabal-fmt: expand test -Spec
+  other-modules:   MyLibSpec
+  build-depends:
+    , base ^>=4.17.2.1
+    , lgchain-hs
   default-language: GHC2021
