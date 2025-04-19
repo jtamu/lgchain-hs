@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Clients where
@@ -11,7 +12,7 @@ import Data.Text qualified as T
 import Network.HTTP.Conduit (parseRequest_)
 import Network.HTTP.Simple (getResponseBody, httpJSON, setRequestBodyJSON, setRequestHeaders)
 import Network.HTTP.Types (hAuthorization, hContentType)
-import Requests (JsonSchemaConvertable (convertJson), Prompt, ReqBody (ReqBody), ReqMessage (ReqMessage), ResponseFormat (ResponseFormat))
+import Requests (FormatType (JsonFormat), JsonSchemaConvertable (convertJson), Prompt, ReqBody (ReqBody), ReqMessage (ReqMessage), ResponseFormat (ResponseFormat))
 import Responses (ResBody (choices), ResMessage (ResMessage), ResMessageContent (content))
 import System.Environment (getEnv)
 
@@ -57,20 +58,23 @@ structedOutput :: Maybe (Output a) -> Maybe a
 structedOutput (Just (StructedOutput struct)) = Just struct
 structedOutput _ = Nothing
 
-buildReqBody :: (JsonSchemaConvertable a) => Chain a -> Maybe FormatMap -> ReqBody
+buildReqBody :: Chain a -> Maybe FormatMap -> ReqBody
 buildReqBody (Chain model prompt maybeData) maybeFormat =
-  ReqBody (openAIModelNameStr model) formattedPrompt resFormat
+  ReqBody (openAIModelNameStr model) formattedPrompt (Just resFormat)
   where
     formattedPrompt = maybe prompt (`formatPrompt` prompt) maybeFormat
-    resFormat = do
-      dataSchema <- convertJson <$> maybeData
-      return $ ResponseFormat "json_schema" dataSchema
+    resFormat = ResponseFormat JsonFormat (convertJson maybeData)
+buildReqBody (StrChain model prompt) maybeFormat =
+  ReqBody (openAIModelNameStr model) formattedPrompt Nothing
+  where
+    formattedPrompt = maybe prompt (`formatPrompt` prompt) maybeFormat
 
 data Chain a where
-  Chain :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> (Maybe a) -> Chain a
+  Chain :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> a -> Chain a
+  StrChain :: ChatOpenAI -> Prompt -> Chain a
 
-invoke :: (JsonSchemaConvertable a) => Chain a -> Maybe FormatMap -> IO (Maybe (Output a))
-invoke chain@(Chain _ _ resFormat) formatMap = do
+invoke :: Chain a -> Maybe FormatMap -> IO (Maybe (Output a))
+invoke chain formatMap = do
   openaiApiKey <- getEnv "OPENAI_API_KEY"
   let reqbody = buildReqBody chain formatMap
   let req =
@@ -79,6 +83,6 @@ invoke chain@(Chain _ _ resFormat) formatMap = do
             parseRequest_ "POST https://api.openai.com/v1/chat/completions"
   res <- httpJSON req
   let resBody = (getResponseBody res :: ResBody)
-  case resFormat of
-    Just _ -> return $ extractStructedOutput resBody
-    Nothing -> return $ StrOutput <$> extractStrOutput resBody
+  case chain of
+    Chain {} -> return $ extractStructedOutput resBody
+    StrChain _ _ -> return $ StrOutput <$> extractStrOutput resBody

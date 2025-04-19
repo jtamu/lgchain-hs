@@ -86,8 +86,14 @@ instance ToJSON JsonSchemaDefinition where
   toJSON (JsonSchemaDefinition name schema) =
     object ["name" .= name, "schema" .= schema]
 
+data FormatType = TextFormat | JsonFormat deriving (Show)
+
+instance ToJSON FormatType where
+  toJSON TextFormat = String $ pack "text"
+  toJSON JsonFormat = String $ pack "json_schema"
+
 data ResponseFormat = ResponseFormat
-  { formatType :: Text,
+  { formatType :: FormatType,
     jsonSchema :: JsonSchemaDefinition
   }
   deriving (Show, Generic)
