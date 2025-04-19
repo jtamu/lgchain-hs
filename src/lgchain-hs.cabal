@@ -134,14 +134,20 @@ common test-depends
   build-tool-depends: hspec-discover:hspec-discover
 
 test-suite spec
-  import:          warnings, test-depends
-  type:            exitcode-stdio-1.0
-  hs-source-dirs:  test
-  main-is:         Spec.hs
+  import:           warnings, test-depends
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Spec.hs
 
   -- cabal-fmt: expand test -Spec
-  other-modules:   MyLibSpec
+  other-modules:
+    ClientsSpec
+    MyLibSpec
+
   build-depends:
-    , base ^>=4.17.2.1
+    , aeson
+    , base        ^>=4.17.2.1
+    , containers
     , lgchain-hs
+
   default-language: GHC2021

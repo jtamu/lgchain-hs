@@ -23,7 +23,7 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (Lift)
 import Utils (takeAfterLastDot)
 
-data Role = System | User
+data Role = System | User deriving (Eq)
 
 instance Show Role where
   show System = "system"
@@ -33,13 +33,13 @@ instance ToJSON Role where
   toJSON System = String (pack "system")
   toJSON User = String (pack "user")
 
-data ReqMessage = ReqMessage {role :: Role, content :: Text} deriving (Show, Generic)
+data ReqMessage = ReqMessage {role :: Role, content :: Text} deriving (Eq, Show, Generic)
 
 instance ToJSON ReqMessage
 
 type Prompt = [ReqMessage]
 
-data PropertyType = IntType | StringType | DoubleType | BooleanType | ListType deriving (Show, Lift)
+data PropertyType = IntType | StringType | DoubleType | BooleanType | ListType deriving (Eq, Show, Lift)
 
 instance ToJSON PropertyType where
   toJSON IntType = String $ pack "integer"
@@ -55,7 +55,7 @@ data JsonSchemaProperty = JsonSchemaProperty
     items :: Maybe JsonSchemaProperty,
     uniqueItems :: Maybe Bool
   }
-  deriving (Show, Generic, Lift)
+  deriving (Eq, Show, Generic, Lift)
 
 instance ToJSON JsonSchemaProperty where
   toJSON (JsonSchemaProperty description propertyType items uniqueItems) =
@@ -70,7 +70,7 @@ data JsonSchema = JsonSchema
     properties :: [(Text, JsonSchemaProperty)],
     required :: [Text]
   }
-  deriving (Show, Generic, Lift)
+  deriving (Eq, Show, Generic, Lift)
 
 instance ToJSON JsonSchema where
   toJSON (JsonSchema schemaType properties required) =
@@ -80,13 +80,13 @@ data JsonSchemaDefinition = JsonSchemaDefinition
   { name :: Text,
     schema :: JsonSchema
   }
-  deriving (Show, Generic, Lift)
+  deriving (Eq, Show, Generic, Lift)
 
 instance ToJSON JsonSchemaDefinition where
   toJSON (JsonSchemaDefinition name schema) =
     object ["name" .= name, "schema" .= schema]
 
-data FormatType = TextFormat | JsonFormat deriving (Show)
+data FormatType = TextFormat | JsonFormat deriving (Eq, Show)
 
 instance ToJSON FormatType where
   toJSON TextFormat = String $ pack "text"
@@ -96,7 +96,7 @@ data ResponseFormat = ResponseFormat
   { formatType :: FormatType,
     jsonSchema :: JsonSchemaDefinition
   }
-  deriving (Show, Generic)
+  deriving (Eq, Show, Generic)
 
 instance ToJSON ResponseFormat where
   toJSON (ResponseFormat formatType jsonSchema) =
@@ -107,7 +107,7 @@ data ReqBody = ReqBody
     messages :: Prompt,
     responseFormat :: Maybe ResponseFormat
   }
-  deriving (Show, Generic)
+  deriving (Eq, Show, Generic)
 
 instance ToJSON ReqBody where
   toJSON (ReqBody model messages responseFormat) =
