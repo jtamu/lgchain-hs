@@ -4,7 +4,7 @@
 
 module ClientsSpec where
 
-import Clients (Chain (Chain, StrChain), ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O), Output (StrOutput), buildOutput, buildReqBody)
+import Clients (Chain (Chain, StrChain), ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O), Output (StrOutput, StructedOutput), buildOutput, buildReqBody)
 import Codec.Binary.UTF8.String qualified as UTF8
 import Data.Aeson (FromJSON, decode)
 import Data.ByteString.Lazy qualified as BS
@@ -158,3 +158,30 @@ spec = describe "Clients" $ do
         let resBody = ResBody {choices = [ResMessage (ResMessageContent "assistant" "response message")]}
         let output = buildOutput chain resBody
         fromJust output `shouldBe` StrOutput "response message"
+
+    context "構造化出力の場合" $ do
+      it "出力が正しいこと" $ do
+        let chain =
+              Chain
+                (ChatOpenAI GPT4O)
+                [ ReqMessage System "system message",
+                  ReqMessage User "user message"
+                ]
+                (undefined :: Recipe)
+        let resBody =
+              ResBody
+                { choices =
+                    [ ResMessage
+                        ( ResMessageContent
+                            "assistant"
+                            [r|
+                              {
+                                "ingredients": ["ing1", "ing2"],
+                                "steps": ["step1", "step2"]
+                              }
+                            |]
+                        )
+                    ]
+                }
+        let output = buildOutput chain resBody
+        fromJust output `shouldBe` StructedOutput (Recipe ["ing1", "ing2"] ["step1", "step2"])
