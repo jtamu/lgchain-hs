@@ -180,18 +180,17 @@ deriveJsonSchema :: Name -> Q [Dec]
 deriveJsonSchema name = do
   TyConI (DataD _ _ _ _ [RecC _ fields] _) <- reify name
   let tup = [(fname, ftype) | (fname, _, ftype) <- fields]
-      edefinition = mapSchemaDefinition tup
+      edefinition = mapSchemaDefinition name tup
    in case edefinition of
         Right definition -> [d|instance JsonSchemaConvertable $(conT name) where convertJson _ = definition|]
         Left e -> fail e
 
-mapSchemaDefinition :: [(Name, Type)] -> Either String JsonSchemaDefinition
-mapSchemaDefinition a = case sequenceA [mapSchema tup | tup <- a] of
+mapSchemaDefinition :: Name -> [(Name, Type)] -> Either String JsonSchemaDefinition
+mapSchemaDefinition schemaName a = case sequenceA [mapSchema tup | tup <- a] of
   Right props ->
-    -- TODO: name, required
     Right
       JsonSchemaDefinition
-        { name = "Recipe",
+        { name = pack $ takeAfterLastDot $ show schemaName,
           schema = JsonSchema {schemaType = "object", properties = M.fromList props, required = [name | (name, _) <- props]}
         }
   Left err -> Left err
