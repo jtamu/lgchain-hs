@@ -58,6 +58,10 @@ structedOutput :: Maybe (Output a) -> Maybe a
 structedOutput (Just (StructedOutput struct)) = Just struct
 structedOutput _ = Nothing
 
+data Chain a where
+  Chain :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> a -> Chain a
+  StrChain :: ChatOpenAI -> Prompt -> Chain a
+
 buildReqBody :: Chain a -> Maybe FormatMap -> ReqBody
 buildReqBody (Chain model prompt maybeData) maybeFormat =
   ReqBody (openAIModelNameStr model) formattedPrompt (Just resFormat)
@@ -69,9 +73,9 @@ buildReqBody (StrChain model prompt) maybeFormat =
   where
     formattedPrompt = maybe prompt (`formatPrompt` prompt) maybeFormat
 
-data Chain a where
-  Chain :: (JsonSchemaConvertable a) => ChatOpenAI -> Prompt -> a -> Chain a
-  StrChain :: ChatOpenAI -> Prompt -> Chain a
+buildResBody :: Chain a -> ResBody -> Maybe (Output a)
+buildResBody (StrChain _ _) res = StrOutput <$> extractStrOutput res
+buildResBody (Chain {}) res = extractStructedOutput res
 
 invoke :: Chain a -> Maybe FormatMap -> IO (Maybe (Output a))
 invoke chain formatMap = do
@@ -82,7 +86,5 @@ invoke chain formatMap = do
           setRequestBodyJSON reqbody $
             parseRequest_ "POST https://api.openai.com/v1/chat/completions"
   res <- httpJSON req
-  let resBody = (getResponseBody res :: ResBody)
-  case chain of
-    Chain {} -> return $ extractStructedOutput resBody
-    StrChain _ _ -> return $ StrOutput <$> extractStrOutput resBody
+  let resBody = getResponseBody res
+  return $ buildResBody chain resBody
