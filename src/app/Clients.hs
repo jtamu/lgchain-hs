@@ -73,9 +73,9 @@ buildReqBody (StrChain model prompt) maybeFormat =
   where
     formattedPrompt = maybe prompt (`formatPrompt` prompt) maybeFormat
 
-buildResBody :: Chain a -> ResBody -> Maybe (Output a)
-buildResBody (StrChain _ _) res = StrOutput <$> extractStrOutput res
-buildResBody (Chain {}) res = extractStructedOutput res
+buildOutput :: Chain a -> ResBody -> Maybe (Output a)
+buildOutput (StrChain _ _) res = StrOutput <$> extractStrOutput res
+buildOutput (Chain {}) res = extractStructedOutput res
 
 invoke :: Chain a -> Maybe FormatMap -> IO (Maybe (Output a))
 invoke chain formatMap = do
@@ -87,4 +87,4 @@ invoke chain formatMap = do
             parseRequest_ "POST https://api.openai.com/v1/chat/completions"
   res <- httpJSON req
   let resBody = getResponseBody res
-  return $ buildResBody chain resBody
+  return $ buildOutput chain resBody
