@@ -173,7 +173,7 @@ instance FromJSON ReqBody where
       <*> v .: "messages"
       <*> v .:? "response_format"
 
-class (FromJSON a) => JsonSchemaConvertable a where
+class (FromJSON a, Show a, Eq a) => JsonSchemaConvertable a where
   convertJson :: a -> JsonSchemaDefinition
 
 deriveJsonSchema :: Name -> Q [Dec]

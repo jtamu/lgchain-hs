@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Clients where
 
@@ -38,6 +39,10 @@ openAIModelNameStr (ChatOpenAI modelName) = show modelName
 data Output a where
   StrOutput :: String -> Output a
   StructedOutput :: (JsonSchemaConvertable a) => a -> Output a
+
+deriving instance Show (Output a)
+
+deriving instance Eq (Output a)
 
 extractStrOutput :: ResBody -> Maybe String
 extractStrOutput resBody = case choices resBody of

@@ -14,7 +14,7 @@ data Recipe = Recipe
   { ingredients :: [String],
     steps :: [String]
   }
-  deriving (Show, Generic)
+  deriving (Eq, Show, Generic)
 
 instance FromJSON Recipe
 
