@@ -140,14 +140,14 @@ test-suite spec
   main-is:          Spec.hs
 
   -- cabal-fmt: expand test -Spec
-  other-modules:
-    ClientsSpec
-    MyLibSpec
-
+  other-modules:    ClientsSpec
   build-depends:
     , aeson
-    , base        ^>=4.17.2.1
+    , base            ^>=4.17.2.1
+    , bytestring
     , containers
     , lgchain-hs
+    , raw-strings-qq
+    , utf8-string
 
   default-language: GHC2021

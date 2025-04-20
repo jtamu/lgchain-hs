@@ -5,9 +5,10 @@
 
 module Requests where
 
-import Data.Aeson (FromJSON, ToJSON, Value (String), object, (.=))
+import Data.Aeson (FromJSON (parseJSON), ToJSON, Value (String), object, withObject, (.:), (.:?), (.=))
 import Data.Aeson.Key (fromText)
 import Data.Aeson.Types (toJSON)
+import Data.Map qualified as M
 import Data.Text (Text, pack)
 import GHC.Generics (Generic)
 import Language.Haskell.TH
@@ -33,9 +34,17 @@ instance ToJSON Role where
   toJSON System = String (pack "system")
   toJSON User = String (pack "user")
 
+instance FromJSON Role where
+  parseJSON (String s)
+    | s == pack "system" = pure System
+    | s == pack "user" = pure User
+  parseJSON _ = fail "Expected \"system\" or \"user\""
+
 data ReqMessage = ReqMessage {role :: Role, content :: Text} deriving (Eq, Show, Generic)
 
 instance ToJSON ReqMessage
+
+instance FromJSON ReqMessage
 
 type Prompt = [ReqMessage]
 
@@ -47,6 +56,15 @@ instance ToJSON PropertyType where
   toJSON DoubleType = String $ pack "number"
   toJSON BooleanType = String $ pack "boolean"
   toJSON ListType = String $ pack "array"
+
+instance FromJSON PropertyType where
+  parseJSON (String s)
+    | s == pack "integer" = pure IntType
+    | s == pack "string" = pure StringType
+    | s == pack "number" = pure DoubleType
+    | s == pack "boolean" = pure BooleanType
+    | s == pack "array" = pure ListType
+  parseJSON _ = fail "Expected one of: \"integer\", \"string\", \"number\", \"boolean\", \"array\""
 
 -- JSON Schema for structured output
 data JsonSchemaProperty = JsonSchemaProperty
@@ -67,14 +85,14 @@ instance ToJSON JsonSchemaProperty where
 
 data JsonSchema = JsonSchema
   { schemaType :: Text,
-    properties :: [(Text, JsonSchemaProperty)],
+    properties :: M.Map Text JsonSchemaProperty,
     required :: [Text]
   }
   deriving (Eq, Show, Generic, Lift)
 
 instance ToJSON JsonSchema where
   toJSON (JsonSchema schemaType properties required) =
-    object ["type" .= schemaType, "properties" .= object [fromText k .= v | (k, v) <- properties], "required" .= required]
+    object ["type" .= schemaType, "properties" .= object [fromText k .= v | (k, v) <- M.toList properties], "required" .= required]
 
 data JsonSchemaDefinition = JsonSchemaDefinition
   { name :: Text,
@@ -92,6 +110,12 @@ instance ToJSON FormatType where
   toJSON TextFormat = String $ pack "text"
   toJSON JsonFormat = String $ pack "json_schema"
 
+instance FromJSON FormatType where
+  parseJSON (String s)
+    | s == pack "text" = pure TextFormat
+    | s == pack "json_schema" = pure JsonFormat
+  parseJSON _ = fail "Expected \"text\" or \"json_schema\""
+
 data ResponseFormat = ResponseFormat
   { formatType :: FormatType,
     jsonSchema :: JsonSchemaDefinition
@@ -101,6 +125,12 @@ data ResponseFormat = ResponseFormat
 instance ToJSON ResponseFormat where
   toJSON (ResponseFormat formatType jsonSchema) =
     object ["type" .= formatType, "json_schema" .= jsonSchema]
+
+instance FromJSON ResponseFormat where
+  parseJSON = withObject "ResponseFormat" $ \v ->
+    ResponseFormat
+      <$> v .: "type"
+      <*> v .: "json_schema"
 
 data ReqBody = ReqBody
   { model :: String,
@@ -114,6 +144,34 @@ instance ToJSON ReqBody where
     object $
       ["model" .= model, "messages" .= messages]
         ++ maybe [] (\x -> ["response_format" .= x]) responseFormat
+
+instance FromJSON JsonSchemaProperty where
+  parseJSON = withObject "JsonSchemaProperty" $ \v ->
+    JsonSchemaProperty
+      <$> v .:? "description"
+      <*> v .: "type"
+      <*> v .:? "items"
+      <*> v .:? "unique_items"
+
+instance FromJSON JsonSchema where
+  parseJSON = withObject "JsonSchema" $ \v -> do
+    schemaType <- v .: "type"
+    props <- v .: "properties"
+    required <- v .: "required"
+    return $ JsonSchema schemaType props required
+
+instance FromJSON JsonSchemaDefinition where
+  parseJSON = withObject "JsonSchemaDefinition" $ \v ->
+    JsonSchemaDefinition
+      <$> v .: "name"
+      <*> v .: "schema"
+
+instance FromJSON ReqBody where
+  parseJSON = withObject "ReqBody" $ \v ->
+    ReqBody
+      <$> v .: "model"
+      <*> v .: "messages"
+      <*> v .:? "response_format"
 
 class (FromJSON a) => JsonSchemaConvertable a where
   convertJson :: a -> JsonSchemaDefinition
@@ -134,7 +192,7 @@ mapSchemaDefinition a = case sequenceA [mapSchema tup | tup <- a] of
     Right
       JsonSchemaDefinition
         { name = "Recipe",
-          schema = JsonSchema {schemaType = "object", properties = props, required = [name | (name, _) <- props]}
+          schema = JsonSchema {schemaType = "object", properties = M.fromList props, required = [name | (name, _) <- props]}
         }
   Left err -> Left err
 
