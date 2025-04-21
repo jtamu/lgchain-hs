@@ -1,4 +1,4 @@
-# Revision history for lgchain-hs
+# Revision history for lgchain-hs-openai
 
 ## 0.1.0.0 -- YYYY-mm-dd
 

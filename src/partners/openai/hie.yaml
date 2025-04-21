@@ -1,0 +1,6 @@
+cradle:
+  cabal:
+    - path: "app/Main.hs"
+      component: "lgchain-hs-openai:exe:lgchain-hs-openai"
+    - path: "test"
+      component: "lgchain-hs-openai:test:spec"

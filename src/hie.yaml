@@ -1,6 +1,0 @@
-cradle:
-  cabal:
-    - path: "app/Main.hs"
-      component: "lgchain-hs:exe:lgchain-hs"
-    - path: "test"
-      component: "lgchain-hs:test:spec"
