@@ -1,0 +1,7 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:lgchain-hs-gemini"
+
+    - path: "test"
+      component: "lgchain-hs-gemini:test:lgchain-hs-gemini-test"

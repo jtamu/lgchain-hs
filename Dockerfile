@@ -17,7 +17,4 @@ RUN cabal install cabal-fmt implicit-hie
 WORKDIR ${APP_DIR}/src
 COPY ./src/ .
 
-RUN cabal build
-
 ENTRYPOINT ["/bin/bash"]
-
