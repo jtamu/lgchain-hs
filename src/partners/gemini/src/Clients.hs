@@ -13,10 +13,12 @@ import System.Environment (getEnv)
 invoke :: GenerateContentRequest -> IO GenerateContentResponse
 invoke reqBody = do
   openaiApiKey <- getEnv "GEMINI_API_KEY"
+  let model = "gemini-1.5-flash"
   let req =
         setRequestHeaders [(hContentType, "application/json")] $
           setRequestBodyJSON reqBody $
             setRequestQueryString [("key", Just $ BS.pack $ UTF8.encode openaiApiKey)] $
-              parseRequest_ "POST https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+              parseRequest_ $
+                "POST https://generativelanguage.googleapis.com/v1beta/models/" ++ model ++ ":generateContent"
   res <- httpJSON req
   return $ getResponseBody res
