@@ -6,9 +6,10 @@ import Codec.Binary.UTF8.String qualified as UTF8
 import Data.ByteString qualified as BS
 import Data.Map qualified as M
 import Data.Text qualified as T
+import GHC.Generics (Generic)
 import Network.HTTP.Simple (getResponseBody, httpJSON, parseRequest_, setRequestBodyJSON, setRequestHeaders, setRequestQueryString)
 import Network.HTTP.Types (hContentType)
-import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), Part (Part))
+import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), Part (Part), Role)
 import Responses (GenerateContentResponse)
 import System.Environment (getEnv)
 
@@ -24,12 +25,12 @@ type FormatMap = M.Map T.Text T.Text
 formatAll :: T.Text -> FormatMap -> T.Text
 formatAll = M.foldlWithKey (\acc k v -> T.replace k v acc)
 
-formatPrompt :: FormatMap -> GenerateContentRequest -> GenerateContentRequest
-formatPrompt formatMap (GenerateContentRequest contents config) =
-  GenerateContentRequest
-    [ Content role (map (\(Part part) -> Part (formatAll part formatMap)) parts) | Content role parts <- contents
-    ]
-    config
+data ReqMessage = ReqMessage {role :: Role, content :: T.Text} deriving (Eq, Show, Generic)
+
+type Prompt = [ReqMessage]
+
+formatPrompt :: FormatMap -> Prompt -> Prompt
+formatPrompt formatMap prompt = [ReqMessage role (formatAll content formatMap) | ReqMessage role content <- prompt]
 
 geminiModelNameStr :: ChatGemini -> String
 geminiModelNameStr (ChatGemini modelName) = show modelName
@@ -46,13 +47,19 @@ strOutput (Just (StrOutput str)) = Just str
 strOutput _ = Nothing
 
 data Chain a where
-  StrChain :: ChatGemini -> GenerateContentRequest -> Chain a
+  StrChain :: ChatGemini -> Prompt -> Chain a
+
+buildReqBody :: Chain a -> Maybe FormatMap -> GenerateContentRequest
+buildReqBody (StrChain _ prompt) maybeFormat =
+  GenerateContentRequest contents Nothing
+  where
+    contents = [Content role [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
 
 invoke :: Chain a -> Maybe FormatMap -> IO GenerateContentResponse
-invoke (StrChain model reqBody) formatMap = do
+invoke chain@(StrChain model _) formatMap = do
   geminiApiKey <- getEnv "GEMINI_API_KEY"
   let modelName = geminiModelNameStr model
-  let formattedReq = maybe reqBody (`formatPrompt` reqBody) formatMap
+  let formattedReq = buildReqBody chain formatMap
   let req =
         setRequestHeaders [(hContentType, "application/json")] $
           setRequestBodyJSON formattedReq $
