@@ -2,7 +2,8 @@
 
 module MyLib (someFunc) where
 
-import Clients (invoke)
+import Clients (Chain (StrChain), ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH), invoke)
+import Data.Map qualified as M
 import Requests (Content (Content, parts, role), GenerateContentRequest (GenerateContentRequest, contents, generationConfig), Part (Part, text), Role (User))
 import Responses (extractResponseMessage)
 
@@ -17,10 +18,11 @@ someFunc = do
                   },
                 Content
                   { role = User,
-                    parts = [Part {text = "私の名前は田村です"}]
+                    parts = [Part {text = "私の名前は{name}です"}]
                   }
               ],
             generationConfig = Nothing
           }
-  res <- invoke req
+  let chain = StrChain (ChatGemini GEMINI_1_5_FLASH) req
+  res <- invoke chain (Just $ M.fromList [("{name}", "田村")])
   print $ extractResponseMessage res
