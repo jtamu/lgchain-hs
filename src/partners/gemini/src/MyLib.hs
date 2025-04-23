@@ -2,10 +2,9 @@
 
 module MyLib (someFunc) where
 
-import Clients (Chain (StrChain), ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH), ReqMessage (ReqMessage), invoke)
+import Clients (Chain (StrChain), ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH), ReqMessage (ReqMessage), invoke, strOutput)
 import Data.Map qualified as M
 import Requests (Role (User))
-import Responses (extractResponseMessage)
 
 someFunc :: IO ()
 someFunc = do
@@ -14,4 +13,4 @@ someFunc = do
   let chain = StrChain model prompt
   let formatMap = M.fromList [("{name}", "田村")]
   res <- invoke chain (Just formatMap)
-  print $ extractResponseMessage res
+  print $ strOutput res

@@ -10,7 +10,8 @@ import GHC.Generics (Generic)
 import Network.HTTP.Simple (getResponseBody, httpJSON, parseRequest_, setRequestBodyJSON, setRequestHeaders, setRequestQueryString)
 import Network.HTTP.Types (hContentType)
 import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), Part (Part), Role)
-import Responses (GenerateContentResponse)
+import Responses (Content (parts), GenerateContentResponse (GenerateContentResponse), Part (text))
+import Responses qualified as Res (Candidate (content))
 import System.Environment (getEnv)
 
 data GeminiModelName = GEMINI_1_5_FLASH
@@ -36,13 +37,20 @@ geminiModelNameStr :: ChatGemini -> String
 geminiModelNameStr (ChatGemini modelName) = show modelName
 
 data Output a where
-  StrOutput :: String -> Output a
+  StrOutput :: T.Text -> Output a
 
 deriving instance Show (Output a)
 
 deriving instance Eq (Output a)
 
-strOutput :: Maybe (Output a) -> Maybe String
+extractStrOutput :: GenerateContentResponse -> Maybe T.Text
+extractStrOutput (GenerateContentResponse candidates) =
+  let messages = [text part | candidate <- candidates, part <- parts $ Res.content candidate]
+   in case messages of
+        (message : _) -> Just message
+        _ -> Nothing
+
+strOutput :: Maybe (Output a) -> Maybe T.Text
 strOutput (Just (StrOutput str)) = Just str
 strOutput _ = Nothing
 
@@ -55,7 +63,10 @@ buildReqBody (StrChain _ prompt) maybeFormat =
   where
     contents = [Content role [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
 
-invoke :: Chain a -> Maybe FormatMap -> IO GenerateContentResponse
+buildOutput :: Chain a -> GenerateContentResponse -> Maybe (Output a)
+buildOutput (StrChain _ _) res = StrOutput <$> extractStrOutput res
+
+invoke :: Chain a -> Maybe FormatMap -> IO (Maybe (Output a))
 invoke chain@(StrChain model _) formatMap = do
   geminiApiKey <- getEnv "GEMINI_API_KEY"
   let modelName = geminiModelNameStr model
@@ -67,4 +78,5 @@ invoke chain@(StrChain model _) formatMap = do
               parseRequest_ $
                 "POST https://generativelanguage.googleapis.com/v1beta/models/" ++ modelName ++ ":generateContent"
   res <- httpJSON req
-  return $ getResponseBody res
+  let resBody = getResponseBody res
+  return $ buildOutput chain resBody
