@@ -3,13 +3,15 @@
 module Clients where
 
 import Codec.Binary.UTF8.String qualified as UTF8
+import Data.Aeson (decode)
 import Data.ByteString qualified as BS
+import Data.ByteString.Lazy qualified as LBS
 import Data.Map qualified as M
 import Data.Text qualified as T
 import GHC.Generics (Generic)
 import Network.HTTP.Simple (getResponseBody, httpJSON, parseRequest_, setRequestBodyJSON, setRequestHeaders, setRequestQueryString)
 import Network.HTTP.Types (hContentType)
-import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), Part (Part), Role)
+import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), JsonSchemaConvertable (convertJson), Part (Part), Role)
 import Responses (Content (parts), GenerateContentResponse (GenerateContentResponse), Part (text))
 import Responses qualified as Res (Candidate (content))
 import System.Environment (getEnv)
@@ -37,38 +39,58 @@ geminiModelNameStr :: ChatGemini -> String
 geminiModelNameStr (ChatGemini modelName) = show modelName
 
 data Output a where
-  StrOutput :: T.Text -> Output a
+  StrOutput :: String -> Output a
+  StructedOutput :: (JsonSchemaConvertable a) => a -> Output a
 
 deriving instance Show (Output a)
 
 deriving instance Eq (Output a)
 
-extractStrOutput :: GenerateContentResponse -> Maybe T.Text
+extractStrOutput :: GenerateContentResponse -> Maybe String
 extractStrOutput (GenerateContentResponse candidates) =
   let messages = [text part | candidate <- candidates, part <- parts $ Res.content candidate]
    in case messages of
-        (message : _) -> Just message
+        (message : _) -> Just $ T.unpack message
         _ -> Nothing
 
-strOutput :: Maybe (Output a) -> Maybe T.Text
+strOutput :: Maybe (Output a) -> Maybe String
 strOutput (Just (StrOutput str)) = Just str
 strOutput _ = Nothing
 
+extractStructedOutput :: (JsonSchemaConvertable a) => GenerateContentResponse -> Maybe (Output a)
+extractStructedOutput res = do
+  str <- extractStrOutput res
+  decoded <- decode $ LBS.pack $ UTF8.encode str
+  return $ StructedOutput decoded
+
+structedOputput :: (JsonSchemaConvertable a) => Maybe (Output a) -> Maybe a
+structedOputput (Just (StructedOutput a)) = Just a
+structedOputput _ = Nothing
+
 data Chain a where
+  Chain :: (JsonSchemaConvertable a) => ChatGemini -> Prompt -> a -> Chain a
   StrChain :: ChatGemini -> Prompt -> Chain a
 
 buildReqBody :: Chain a -> Maybe FormatMap -> GenerateContentRequest
+buildReqBody (Chain _ prompt schema) maybeFormat =
+  GenerateContentRequest contents (Just $ convertJson schema)
+  where
+    contents = [Content role [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
 buildReqBody (StrChain _ prompt) maybeFormat =
   GenerateContentRequest contents Nothing
   where
     contents = [Content role [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
 
 buildOutput :: Chain a -> GenerateContentResponse -> Maybe (Output a)
+buildOutput (Chain {}) res = extractStructedOutput res
 buildOutput (StrChain _ _) res = StrOutput <$> extractStrOutput res
 
 invoke :: Chain a -> Maybe FormatMap -> IO (Maybe (Output a))
-invoke chain@(StrChain model _) formatMap = do
+invoke chain formatMap = do
   geminiApiKey <- getEnv "GEMINI_API_KEY"
+  let model = case chain of
+        Chain m _ _ -> m
+        StrChain m _ -> m
   let modelName = geminiModelNameStr model
   let formattedReq = buildReqBody chain formatMap
   let req =
