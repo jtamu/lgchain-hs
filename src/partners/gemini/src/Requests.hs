@@ -21,23 +21,32 @@ import Data.Text qualified as T
 import GHC.Generics (Generic)
 import Language.Haskell.TH (Con (RecC), Dec (DataD), Info (TyConI), Name, Q, Type (AppT, ConT, ListT), conT, reify)
 import Language.Haskell.TH.Syntax (Lift)
+import Lgchain.Core.Requests qualified as Core (Role (Model, System, User))
 import Utils (takeAfterLastDot)
 
-data Role = User | Model deriving (Eq)
+newtype Role = Role Core.Role
+
+instance Eq Role where
+  -- System と User はgeminiにおいては等価なものとして扱う (Systemは存在しないため)
+  (==) (Role Core.System) (Role Core.User) = True
+  (==) (Role Core.User) (Role Core.System) = True
+  (==) (Role a) (Role b) = a == b
 
 instance Show Role where
-  show User = "user"
-  show Model = "model"
-
-instance ToJSON Role where
-  toJSON User = String "user"
-  toJSON Model = String "model"
+  show (Role Core.System) = "user"
+  show (Role Core.User) = "user"
+  show (Role Core.Model) = "model"
 
 instance FromJSON Role where
   parseJSON (String s)
-    | s == "user" = pure User
-    | s == "model" = pure Model
+    | s == "user" = pure $ Role Core.User
+    | s == "model" = pure $ Role Core.Model
   parseJSON _ = fail "Expected \"model\" or \"user\""
+
+instance ToJSON Role where
+  toJSON (Role Core.System) = String "user"
+  toJSON (Role Core.User) = String "user"
+  toJSON (Role Core.Model) = String "model"
 
 -- | パート型
 newtype Part = Part

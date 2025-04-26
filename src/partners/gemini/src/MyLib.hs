@@ -7,7 +7,8 @@ import Clients (Chain (Chain), ChatGemini (ChatGemini), GeminiModelName (GEMINI_
 import Data.Aeson (FromJSON)
 import Data.Map qualified as M
 import GHC.Generics (Generic)
-import Requests (Role (User), deriveJSONSchema)
+import Lgchain.Core.Requests (Role (System, User))
+import Requests (deriveJSONSchema)
 
 data Recipe = Recipe
   { ingredients :: [String],
@@ -21,7 +22,7 @@ deriveJSONSchema ''Recipe
 
 someFunc :: IO ()
 someFunc = do
-  let prompt = [ReqMessage User "ユーザが入力した料理のレシピを考えてください。", ReqMessage User "{dish}"]
+  let prompt = [ReqMessage System "ユーザが入力した料理のレシピを考えてください。", ReqMessage User "{dish}"]
   let model = ChatGemini GEMINI_1_5_FLASH
   let chain = Chain model prompt (undefined :: Recipe)
   let formatMap = M.fromList [("{dish}", "カレー")]

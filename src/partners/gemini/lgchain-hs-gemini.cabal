@@ -83,6 +83,7 @@ library
     , containers
     , http-conduit
     , http-types
+    , lgchain-hs-core
     , split
     , string-conversions
     , template-haskell
@@ -128,6 +129,7 @@ test-suite lgchain-hs-gemini-test
     , base               ^>=4.18.3.0
     , bytestring
     , containers
+    , lgchain-hs-core
     , lgchain-hs-gemini
     , raw-strings-qq
     , text

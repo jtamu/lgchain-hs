@@ -11,7 +11,8 @@ import Data.ByteString.Lazy qualified as BS
 import Data.Map qualified as M
 import Data.Maybe (fromJust)
 import GHC.Generics (Generic)
-import Requests (GenerateContentRequest, Role (User), deriveJSONSchema)
+import Lgchain.Core.Requests (Role (System, User))
+import Requests (GenerateContentRequest, deriveJSONSchema)
 import Responses (Candidate (Candidate), GenerateContentResponse (GenerateContentResponse))
 import Responses qualified as Res (Content (Content), Part (Part))
 import Test.Hspec (Spec, context, describe, it, shouldBe)
@@ -39,7 +40,7 @@ spec = describe "Clients" $ do
           let chain =
                 StrChain
                   (ChatGemini GEMINI_1_5_FLASH)
-                  [ ReqMessage User "system message",
+                  [ ReqMessage System "system message",
                     ReqMessage User "user message"
                   ]
           let reqbody = buildReqBody chain Nothing
@@ -70,7 +71,7 @@ spec = describe "Clients" $ do
           let chain =
                 StrChain
                   (ChatGemini GEMINI_1_5_FLASH)
-                  [ ReqMessage User "system message",
+                  [ ReqMessage System "system message",
                     ReqMessage User "user message {hoge} {fuga}"
                   ]
           let formatMap = M.fromList [("{hoge}", "HOGE"), ("{fuga}", "FUGA")]
@@ -103,7 +104,7 @@ spec = describe "Clients" $ do
           let chain =
                 Chain
                   (ChatGemini GEMINI_1_5_FLASH)
-                  [ ReqMessage User "ユーザが入力した料理のレシピを考えてください。また、日本語で回答してください。",
+                  [ ReqMessage System "ユーザが入力した料理のレシピを考えてください。また、日本語で回答してください。",
                     ReqMessage User "{dish}"
                   ]
                   (undefined :: Recipe)
@@ -167,7 +168,7 @@ spec = describe "Clients" $ do
         let chain =
               StrChain
                 (ChatGemini GEMINI_1_5_FLASH)
-                [ ReqMessage User "system message",
+                [ ReqMessage System "system message",
                   ReqMessage User "user message"
                 ]
         let resBody = GenerateContentResponse [Candidate (Res.Content [Res.Part "response message"] "assistant")]
@@ -179,7 +180,7 @@ spec = describe "Clients" $ do
         let chain =
               Chain
                 (ChatGemini GEMINI_1_5_FLASH)
-                [ ReqMessage User "system message",
+                [ ReqMessage System "system message",
                   ReqMessage User "user message"
                 ]
                 (undefined :: Recipe)

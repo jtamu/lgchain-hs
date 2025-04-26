@@ -9,9 +9,10 @@ import Data.ByteString.Lazy qualified as LBS
 import Data.Map qualified as M
 import Data.Text qualified as T
 import GHC.Generics (Generic)
+import Lgchain.Core.Requests qualified as Core (Role)
 import Network.HTTP.Simple (getResponseBody, httpJSON, parseRequest_, setRequestBodyJSON, setRequestHeaders, setRequestQueryString)
 import Network.HTTP.Types (hContentType)
-import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), JsonSchemaConvertable (convertJson), Part (Part), Role)
+import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), JsonSchemaConvertable (convertJson), Part (Part), Role (Role))
 import Responses (Content (parts), GenerateContentResponse (GenerateContentResponse), Part (text))
 import Responses qualified as Res (Candidate (content))
 import System.Environment (getEnv)
@@ -28,7 +29,7 @@ type FormatMap = M.Map T.Text T.Text
 formatAll :: T.Text -> FormatMap -> T.Text
 formatAll = M.foldlWithKey (\acc k v -> T.replace k v acc)
 
-data ReqMessage = ReqMessage {role :: Role, content :: T.Text} deriving (Eq, Show, Generic)
+data ReqMessage = ReqMessage {role :: Core.Role, content :: T.Text} deriving (Eq, Generic)
 
 type Prompt = [ReqMessage]
 
@@ -75,11 +76,11 @@ buildReqBody :: Chain a -> Maybe FormatMap -> GenerateContentRequest
 buildReqBody (Chain _ prompt schema) maybeFormat =
   GenerateContentRequest contents (Just $ convertJson schema)
   where
-    contents = [Content role [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
+    contents = [Content (Role role) [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
 buildReqBody (StrChain _ prompt) maybeFormat =
   GenerateContentRequest contents Nothing
   where
-    contents = [Content role [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
+    contents = [Content (Role role) [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
 
 buildOutput :: Chain a -> GenerateContentResponse -> Maybe (Output a)
 buildOutput (Chain {}) res = extractStructedOutput res
