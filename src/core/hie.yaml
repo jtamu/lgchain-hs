@@ -1,0 +1,7 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:lgchain-hs-core"
+
+    - path: "test"
+      component: "lgchain-hs-core:test:lgchain-hs-core-test"
