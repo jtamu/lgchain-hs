@@ -6,9 +6,8 @@ import Codec.Binary.UTF8.String qualified as UTF8
 import Data.Aeson (decode)
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
-import Data.Map qualified as M
 import Data.Text qualified as T
-import Lgchain.Core.Requests (Prompt, ReqMessage (ReqMessage))
+import Lgchain.Core.Requests (FormatMap, Prompt, ReqMessage (ReqMessage), formatPrompt)
 import Network.HTTP.Simple (getResponseBody, httpJSON, parseRequest_, setRequestBodyJSON, setRequestHeaders, setRequestQueryString)
 import Network.HTTP.Types (hContentType)
 import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), JsonSchemaConvertable (convertJson), Part (Part), Role (Role))
@@ -22,14 +21,6 @@ instance Show GeminiModelName where
   show GEMINI_1_5_FLASH = "gemini-1.5-flash"
 
 newtype ChatGemini = ChatGemini {modelName :: GeminiModelName} deriving (Show)
-
-type FormatMap = M.Map T.Text T.Text
-
-formatAll :: T.Text -> FormatMap -> T.Text
-formatAll = M.foldlWithKey (\acc k v -> T.replace k v acc)
-
-formatPrompt :: FormatMap -> Prompt -> Prompt
-formatPrompt formatMap prompt = [ReqMessage role (formatAll content formatMap) | ReqMessage role content <- prompt]
 
 geminiModelNameStr :: ChatGemini -> String
 geminiModelNameStr (ChatGemini modelName) = show modelName
