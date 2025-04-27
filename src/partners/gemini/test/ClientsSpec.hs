@@ -4,14 +4,14 @@
 
 module ClientsSpec where
 
-import Clients (Chain (Chain, StrChain), ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH), ReqMessage (ReqMessage), buildOutput, buildReqBody, strOutput, structedOputput)
+import Clients (Chain (Chain, StrChain), ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH), buildOutput, buildReqBody, strOutput, structedOputput)
 import Codec.Binary.UTF8.String qualified as UTF8
 import Data.Aeson (FromJSON, decode)
 import Data.ByteString.Lazy qualified as BS
 import Data.Map qualified as M
 import Data.Maybe (fromJust)
 import GHC.Generics (Generic)
-import Lgchain.Core.Requests (Role (System, User))
+import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User))
 import Requests (GenerateContentRequest, deriveJSONSchema)
 import Responses (Candidate (Candidate), GenerateContentResponse (GenerateContentResponse))
 import Responses qualified as Res (Content (Content), Part (Part))

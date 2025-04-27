@@ -8,8 +8,7 @@ import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
 import Data.Map qualified as M
 import Data.Text qualified as T
-import GHC.Generics (Generic)
-import Lgchain.Core.Requests qualified as Core (Role)
+import Lgchain.Core.Requests (Prompt, ReqMessage (ReqMessage))
 import Network.HTTP.Simple (getResponseBody, httpJSON, parseRequest_, setRequestBodyJSON, setRequestHeaders, setRequestQueryString)
 import Network.HTTP.Types (hContentType)
 import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), JsonSchemaConvertable (convertJson), Part (Part), Role (Role))
@@ -28,10 +27,6 @@ type FormatMap = M.Map T.Text T.Text
 
 formatAll :: T.Text -> FormatMap -> T.Text
 formatAll = M.foldlWithKey (\acc k v -> T.replace k v acc)
-
-data ReqMessage = ReqMessage {role :: Core.Role, content :: T.Text} deriving (Eq, Generic)
-
-type Prompt = [ReqMessage]
 
 formatPrompt :: FormatMap -> Prompt -> Prompt
 formatPrompt formatMap prompt = [ReqMessage role (formatAll content formatMap) | ReqMessage role content <- prompt]
