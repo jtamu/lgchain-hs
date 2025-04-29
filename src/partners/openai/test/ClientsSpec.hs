@@ -4,14 +4,15 @@
 
 module ClientsSpec where
 
-import Clients (Chain (Chain, StrChain), ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O), buildOutput, buildReqBody, strOutput, structedOutput)
+import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O), buildOutput, buildReqBody)
 import Codec.Binary.UTF8.String qualified as UTF8
 import Data.Aeson (FromJSON, decode)
 import Data.ByteString.Lazy qualified as BS
 import Data.Map qualified as M
 import Data.Maybe (fromJust)
 import GHC.Generics (Generic)
-import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), deriveJsonSchema, ReqBody)
+import Lgchain.Core.Clients (Chain (Chain, StrChain), strOutput, structedOutput)
+import Lgchain.Core.Requests (ReqBody, ReqMessage (ReqMessage), Role (System, User), deriveJsonSchema)
 import Responses (ResBody (ResBody, choices), ResMessage (ResMessage), ResMessageContent (ResMessageContent))
 import Test.Hspec (Spec, context, describe, it, shouldBe)
 import Text.RawString.QQ (r)

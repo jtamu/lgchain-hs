@@ -63,6 +63,7 @@ library
   -- Modules exported by the library.
   -- cabal-fmt: expand src -Main
   exposed-modules:
+    Lgchain.Core.Clients
     Lgchain.Core.Requests
     Lgchain.Core.Utils
     MyLib
