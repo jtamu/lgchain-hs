@@ -8,12 +8,11 @@ import Codec.Binary.UTF8.String qualified as UTF8
 import Data.Aeson (decode)
 import Data.ByteString.Char8 qualified as BS
 import Data.ByteString.Lazy qualified as LBS
-import Data.Map.Strict qualified as M
-import Data.Text qualified as T
+import Lgchain.Core.Requests (FormatMap, Prompt, formatPrompt)
 import Network.HTTP.Conduit (parseRequest_)
 import Network.HTTP.Simple (getResponseBody, httpJSON, setRequestBodyJSON, setRequestHeaders)
 import Network.HTTP.Types (hAuthorization, hContentType)
-import Requests (FormatType (JsonFormat), JsonSchemaConvertable (convertJson), Prompt, ReqBody (ReqBody), ReqMessage (ReqMessage), ResponseFormat (ResponseFormat))
+import Requests (FormatType (JsonFormat), JsonSchemaConvertable (convertJson), ReqBody (ReqBody), ResponseFormat (ResponseFormat))
 import Responses (ResBody (choices), ResMessage (ResMessage), ResMessageContent (content))
 import System.Environment (getEnv)
 
@@ -24,14 +23,6 @@ instance Show OpenAIModelName where
   show GPT3_5Turbo = "gpt-3.5-turbo"
 
 newtype ChatOpenAI = ChatOpenAI {modelName :: OpenAIModelName} deriving (Show)
-
-type FormatMap = M.Map T.Text T.Text
-
-formatAll :: T.Text -> FormatMap -> T.Text
-formatAll = M.foldlWithKey (\acc k v -> T.replace k v acc)
-
-formatPrompt :: FormatMap -> Prompt -> Prompt
-formatPrompt formatMap prompt = [ReqMessage role (formatAll content formatMap) | ReqMessage role content <- prompt]
 
 openAIModelNameStr :: ChatOpenAI -> String
 openAIModelNameStr (ChatOpenAI modelName) = show modelName

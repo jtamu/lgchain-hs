@@ -8,7 +8,8 @@ import Data.Aeson (FromJSON)
 import Data.Functor ((<&>))
 import Data.Map qualified as M
 import GHC.Generics (Generic)
-import Requests (ReqMessage (ReqMessage), Role (System, User), deriveJsonSchema)
+import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User))
+import Requests (deriveJsonSchema)
 
 data Recipe = Recipe
   { ingredients :: [String],

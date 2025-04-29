@@ -11,7 +11,8 @@ import Data.ByteString.Lazy qualified as BS
 import Data.Map qualified as M
 import Data.Maybe (fromJust)
 import GHC.Generics (Generic)
-import Requests (ReqBody, ReqMessage (ReqMessage), Role (System, User), deriveJsonSchema)
+import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User))
+import Requests (ReqBody, deriveJsonSchema)
 import Responses (ResBody (ResBody, choices), ResMessage (ResMessage), ResMessageContent (ResMessageContent))
 import Test.Hspec (Spec, context, describe, it, shouldBe)
 import Text.RawString.QQ (r)

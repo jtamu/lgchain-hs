@@ -22,6 +22,7 @@ import Language.Haskell.TH
     reify,
   )
 import Language.Haskell.TH.Syntax (Lift)
+import Lgchain.Core.Requests (Prompt)
 import Utils (takeAfterLastDot)
 
 data Role = System | User deriving (Eq)
@@ -39,14 +40,6 @@ instance FromJSON Role where
     | s == pack "system" = pure System
     | s == pack "user" = pure User
   parseJSON _ = fail "Expected \"system\" or \"user\""
-
-data ReqMessage = ReqMessage {role :: Role, content :: Text} deriving (Eq, Show, Generic)
-
-instance ToJSON ReqMessage
-
-instance FromJSON ReqMessage
-
-type Prompt = [ReqMessage]
 
 data PropertyType = IntType | StringType | DoubleType | BooleanType | ListType deriving (Eq, Show, Lift)
 
