@@ -8,11 +8,10 @@ import Codec.Binary.UTF8.String qualified as UTF8
 import Data.Aeson (decode)
 import Data.ByteString.Char8 qualified as BS
 import Data.ByteString.Lazy qualified as LBS
-import Lgchain.Core.Requests (FormatMap, Prompt, formatPrompt)
+import Lgchain.Core.Requests (FormatMap, FormatType (JsonFormat), JsonSchemaConvertable (convertJson), Prompt, ReqBody (ReqBody), ResponseFormat (ResponseFormat), formatPrompt)
 import Network.HTTP.Conduit (parseRequest_)
 import Network.HTTP.Simple (getResponseBody, httpJSON, setRequestBodyJSON, setRequestHeaders)
 import Network.HTTP.Types (hAuthorization, hContentType)
-import Requests (FormatType (JsonFormat), JsonSchemaConvertable (convertJson), ReqBody (ReqBody), ResponseFormat (ResponseFormat))
 import Responses (ResBody (choices), ResMessage (ResMessage), ResMessageContent (content))
 import System.Environment (getEnv)
 

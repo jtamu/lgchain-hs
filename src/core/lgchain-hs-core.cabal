@@ -64,19 +64,22 @@ library
   -- cabal-fmt: expand src -Main
   exposed-modules:
     Lgchain.Core.Requests
+    Lgchain.Core.Utils
     MyLib
 
   -- Modules included in this library but not exported.
   -- other-modules:
 
   -- LANGUAGE extensions used by modules in this package.
-  -- other-extensions:
+  other-extensions: TemplateHaskell
 
   -- Other library packages from which modules are imported.
   build-depends:
     , aeson
-    , base        ^>=4.18.3.0
+    , base              ^>=4.18.3.0
     , containers
+    , split
+    , template-haskell
     , text
 
   -- Directories containing source files.

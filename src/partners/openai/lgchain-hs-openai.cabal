@@ -64,7 +64,6 @@ library
   -- cabal-fmt: expand app -Main
   exposed-modules:
     Clients
-    Requests
     Responses
     Utils
 
@@ -103,7 +102,6 @@ executable lgchain-hs-openai
   -- cabal-fmt: expand app -Main
   other-modules:
     Clients
-    Requests
     Responses
     Utils
 
