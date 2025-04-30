@@ -7,10 +7,11 @@ import Data.Aeson (decode)
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
 import Data.Text qualified as T
-import Lgchain.Core.Requests (FormatMap, Prompt, ReqMessage (ReqMessage), formatPrompt)
+import Lgchain.Core.Clients (Chain (Chain, StrChain), LLMModel (invokeStr, invokeWithSchema), Output (StrOutput, StructedOutput))
+import Lgchain.Core.Requests (FormatMap, JsonSchemaConvertable (convertJson), ReqMessage (ReqMessage), formatPrompt)
 import Network.HTTP.Simple (getResponseBody, httpJSON, parseRequest_, setRequestBodyJSON, setRequestHeaders, setRequestQueryString)
 import Network.HTTP.Types (hContentType)
-import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), JsonSchemaConvertable (convertJson), Part (Part), Role (Role))
+import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), Part (Part), Role (Role), mapCommonSchemaDefinition)
 import Responses (Content (parts), GenerateContentResponse (GenerateContentResponse), Part (text))
 import Responses qualified as Res (Candidate (content))
 import System.Environment (getEnv)
@@ -25,14 +26,6 @@ newtype ChatGemini = ChatGemini {modelName :: GeminiModelName} deriving (Show)
 geminiModelNameStr :: ChatGemini -> String
 geminiModelNameStr (ChatGemini modelName) = show modelName
 
-data Output a where
-  StrOutput :: String -> Output a
-  StructedOutput :: (JsonSchemaConvertable a) => a -> Output a
-
-deriving instance Show (Output a)
-
-deriving instance Eq (Output a)
-
 extractStrOutput :: GenerateContentResponse -> Maybe String
 extractStrOutput (GenerateContentResponse candidates) =
   let messages = [text part | candidate <- candidates, part <- parts $ Res.content candidate]
@@ -40,27 +33,15 @@ extractStrOutput (GenerateContentResponse candidates) =
         (message : _) -> Just $ T.unpack message
         _ -> Nothing
 
-strOutput :: Maybe (Output a) -> Maybe String
-strOutput (Just (StrOutput str)) = Just str
-strOutput _ = Nothing
-
 extractStructedOutput :: (JsonSchemaConvertable a) => GenerateContentResponse -> Maybe (Output a)
 extractStructedOutput res = do
   str <- extractStrOutput res
   decoded <- decode $ LBS.pack $ UTF8.encode str
   return $ StructedOutput decoded
 
-structedOputput :: (JsonSchemaConvertable a) => Maybe (Output a) -> Maybe a
-structedOputput (Just (StructedOutput a)) = Just a
-structedOputput _ = Nothing
-
-data Chain a where
-  Chain :: (JsonSchemaConvertable a) => ChatGemini -> Prompt -> a -> Chain a
-  StrChain :: ChatGemini -> Prompt -> Chain a
-
-buildReqBody :: Chain a -> Maybe FormatMap -> GenerateContentRequest
+buildReqBody :: Chain b a -> Maybe FormatMap -> GenerateContentRequest
 buildReqBody (Chain _ prompt schema) maybeFormat =
-  GenerateContentRequest contents (Just $ convertJson schema)
+  GenerateContentRequest contents (Just $ mapCommonSchemaDefinition $ convertJson schema)
   where
     contents = [Content (Role role) [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
 buildReqBody (StrChain _ prompt) maybeFormat =
@@ -68,12 +49,12 @@ buildReqBody (StrChain _ prompt) maybeFormat =
   where
     contents = [Content (Role role) [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
 
-buildOutput :: Chain a -> GenerateContentResponse -> Maybe (Output a)
+buildOutput :: Chain b a -> GenerateContentResponse -> Maybe (Output a)
 buildOutput (Chain {}) res = extractStructedOutput res
 buildOutput (StrChain _ _) res = StrOutput <$> extractStrOutput res
 
-invoke :: Chain a -> Maybe FormatMap -> IO (Maybe (Output a))
-invoke chain formatMap = do
+invokeGemini :: Chain ChatGemini a -> Maybe FormatMap -> IO (Maybe (Output a))
+invokeGemini chain formatMap = do
   geminiApiKey <- getEnv "GEMINI_API_KEY"
   let model = case chain of
         Chain m _ _ -> m
@@ -89,3 +70,7 @@ invoke chain formatMap = do
   res <- httpJSON req
   let resBody = getResponseBody res
   return $ buildOutput chain resBody
+
+instance LLMModel ChatGemini where
+  invokeWithSchema model prompt schema = invokeGemini (Chain model prompt schema)
+  invokeStr model prompt = invokeGemini (StrChain model prompt)

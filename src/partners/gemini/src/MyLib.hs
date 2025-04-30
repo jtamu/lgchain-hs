@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module MyLib (someFunc) where
+module MyLib where
 
-import Clients (Chain (Chain), ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH), invoke, structedOputput)
+import Clients (ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH))
 import Data.Aeson (FromJSON)
 import Data.Map qualified as M
 import GHC.Generics (Generic)
-import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User))
-import Requests (deriveJSONSchema)
+import Lgchain.Core.Clients (Chain (Chain), invoke, structedOutput)
+import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), deriveJsonSchema)
 
 data Recipe = Recipe
   { ingredients :: [String],
@@ -18,7 +18,7 @@ data Recipe = Recipe
 
 instance FromJSON Recipe
 
-deriveJSONSchema ''Recipe
+deriveJsonSchema ''Recipe
 
 someFunc :: IO ()
 someFunc = do
@@ -27,4 +27,4 @@ someFunc = do
   let chain = Chain model prompt (undefined :: Recipe)
   let formatMap = M.fromList [("{dish}", "カレー")]
   res <- invoke chain (Just formatMap)
-  print $ structedOputput res
+  print $ structedOutput res

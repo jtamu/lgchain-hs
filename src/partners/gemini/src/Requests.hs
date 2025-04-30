@@ -17,12 +17,9 @@ import Data.Aeson
   )
 import Data.Map qualified as M
 import Data.Text (Text)
-import Data.Text qualified as T
 import GHC.Generics (Generic)
-import Language.Haskell.TH (Con (RecC), Dec (DataD), Info (TyConI), Name, Q, Type (AppT, ConT, ListT), conT, reify)
 import Language.Haskell.TH.Syntax (Lift)
-import Lgchain.Core.Requests qualified as Core (Role (Model, System, User))
-import Utils (takeAfterLastDot)
+import Lgchain.Core.Requests qualified as Core (JsonSchema (properties), JsonSchemaDefinition (JsonSchemaDefinition), JsonSchemaProperty (JsonSchemaProperty), PropertyType (BooleanType, DoubleType, IntType, ListType, StringType), Role (Model, System, User))
 
 newtype Role = Role Core.Role
 
@@ -133,45 +130,19 @@ instance FromJSON GenerateContentRequest
 
 instance ToJSON GenerateContentRequest
 
-class (FromJSON a, Show a, Eq a) => JsonSchemaConvertable a where
-  convertJson :: a -> GenerationConfig
+-- | 共通のスキーマ定義をgemini用に変換する
+mapCommonSchemaDefinition :: Core.JsonSchemaDefinition -> GenerationConfig
+mapCommonSchemaDefinition (Core.JsonSchemaDefinition _ schema) =
+  let itemsMap = M.map mapCommonSchemaProperty (Core.properties schema)
+   in GenerationConfig "application/json" (SchemaItems ObjectType itemsMap Nothing (M.keys itemsMap))
 
-deriveJSONSchema :: Name -> Q [Dec]
-deriveJSONSchema name = do
-  TyConI (DataD _ _ _ _ [RecC _ fields] _) <- reify name
-  let tup = [(fname, ftype) | (fname, _, ftype) <- fields]
-      edefinition = mapGenerationConfig name tup
-   in case edefinition of
-        Right definition -> [d|instance JsonSchemaConvertable $(conT name) where convertJson _ = definition|]
-        Left e -> fail e
-
-mapGenerationConfig :: Name -> [(Name, Type)] -> Either String GenerationConfig
-mapGenerationConfig _ props = do
-  schemaProps <- sequenceA [mapSchema tup | tup <- props]
-  return $
-    GenerationConfig
-      "application/json"
-      ( SchemaItems ObjectType (M.fromList schemaProps) Nothing [T.pack $ takeAfterLastDot $ show name | (name, _) <- props]
-      )
-
-mapSchema :: (Name, Type) -> Either String (Text, SchemaItems)
-mapSchema (name, typ) = do
-  prop <- foldSchemaProperty typ
-  return (T.pack $ takeAfterLastDot $ show name, prop)
-
-foldSchemaProperty :: Type -> Either String SchemaItems
-foldSchemaProperty (ConT a)
-  | a == ''String =
-      Right $ SchemaItems StringType M.empty Nothing []
-  | a == ''Int =
-      Right $ SchemaItems IntType M.empty Nothing []
-  | a == ''Double =
-      Right $ SchemaItems DoubleType M.empty Nothing []
-  | a == ''Bool =
-      Right $ SchemaItems BooleanType M.empty Nothing []
-foldSchemaProperty (AppT ListT (ConT a)) = case foldSchemaProperty (ConT a) of
-  Right prop ->
-    Right $ SchemaItems ListType M.empty (Just prop) []
-  Left err -> Left err
-foldSchemaProperty _ =
-  Left "Only String, Int, Double, Bool, [String], [Int], [Double], [Bool] are supported"
+mapCommonSchemaProperty :: Core.JsonSchemaProperty -> SchemaItems
+mapCommonSchemaProperty (Core.JsonSchemaProperty _ propertyType items _) =
+  SchemaItems typ M.empty (mapCommonSchemaProperty <$> items) []
+  where
+    typ = case propertyType of
+      Core.IntType -> IntType
+      Core.StringType -> StringType
+      Core.DoubleType -> DoubleType
+      Core.BooleanType -> BooleanType
+      Core.ListType -> ListType

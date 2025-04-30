@@ -25,3 +25,7 @@ class LLMModel a where
 data Chain b a where
   Chain :: (JsonSchemaConvertable a, LLMModel b) => b -> Prompt -> a -> Chain b a
   StrChain :: (LLMModel b) => b -> Prompt -> Chain b a
+
+invoke :: Chain b a -> Maybe FormatMap -> IO (Maybe (Output a))
+invoke (Chain model prompt struct) formatMap = invokeWithSchema model prompt struct formatMap
+invoke (StrChain model prompt) formatMap = invokeStr model prompt formatMap

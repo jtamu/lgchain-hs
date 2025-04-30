@@ -4,15 +4,16 @@
 
 module ClientsSpec where
 
-import Clients (Chain (Chain, StrChain), ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH), buildOutput, buildReqBody, strOutput, structedOputput)
+import Clients (ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH), buildOutput, buildReqBody)
 import Codec.Binary.UTF8.String qualified as UTF8
 import Data.Aeson (FromJSON, decode)
 import Data.ByteString.Lazy qualified as BS
 import Data.Map qualified as M
 import Data.Maybe (fromJust)
 import GHC.Generics (Generic)
-import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User))
-import Requests (GenerateContentRequest, deriveJSONSchema)
+import Lgchain.Core.Clients (Chain (Chain, StrChain), strOutput, structedOutput)
+import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), deriveJsonSchema)
+import Requests (GenerateContentRequest)
 import Responses (Candidate (Candidate), GenerateContentResponse (GenerateContentResponse))
 import Responses qualified as Res (Content (Content), Part (Part))
 import Test.Hspec (Spec, context, describe, it, shouldBe)
@@ -26,7 +27,7 @@ data Recipe = Recipe
 
 instance FromJSON Recipe
 
-deriveJSONSchema ''Recipe
+deriveJsonSchema ''Recipe
 
 reqBodyFromStr :: String -> GenerateContentRequest
 reqBodyFromStr = fromJust . decode . BS.pack . UTF8.encode
@@ -200,4 +201,4 @@ spec = describe "Clients" $ do
                     )
                 ]
         let output = buildOutput chain resBody
-        fromJust (structedOputput output) `shouldBe` Recipe ["ing1", "ing2"] ["step1", "step2"]
+        fromJust (structedOutput output) `shouldBe` Recipe ["ing1", "ing2"] ["step1", "step2"]
