@@ -3,12 +3,12 @@
 
 module Main where
 
-import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O), invoke)
+import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O))
 import Data.Aeson (FromJSON)
 import Data.Functor ((<&>))
 import Data.Map qualified as M
 import GHC.Generics (Generic)
-import Lgchain.Core.Clients (Chain (Chain), structedOutput)
+import Lgchain.Core.Clients (Chain (Chain), invoke, structedOutput)
 import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), deriveJsonSchema)
 
 data Recipe = Recipe

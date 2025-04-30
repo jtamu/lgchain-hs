@@ -1,6 +1,5 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE StandaloneDeriving #-}
 
 module Clients where
 
@@ -40,9 +39,9 @@ extractStructedOutput res = do
 
 instance LLMModel ChatOpenAI where
   invokeWithSchema model prompt schema maybeFormat =
-    let chain = Chain model prompt schema in invoke chain maybeFormat
+    let chain = Chain model prompt schema in invokeOpenai chain maybeFormat
   invokeStr model prompt maybeFormat =
-    let chain = StrChain model prompt in invoke chain maybeFormat
+    let chain = StrChain model prompt in invokeOpenai chain maybeFormat
 
 buildReqBody :: Chain ChatOpenAI a -> Maybe FormatMap -> ReqBody
 buildReqBody (Chain model prompt maybeData) maybeFormat =
@@ -59,8 +58,8 @@ buildOutput :: Chain ChatOpenAI a -> ResBody -> Maybe (Output a)
 buildOutput (StrChain _ _) res = StrOutput <$> extractStrOutput res
 buildOutput (Chain {}) res = extractStructedOutput res
 
-invoke :: Chain ChatOpenAI a -> Maybe FormatMap -> IO (Maybe (Output a))
-invoke chain formatMap = do
+invokeOpenai :: Chain ChatOpenAI a -> Maybe FormatMap -> IO (Maybe (Output a))
+invokeOpenai chain formatMap = do
   openaiApiKey <- getEnv "OPENAI_API_KEY"
   let reqbody = buildReqBody chain formatMap
   let req =
