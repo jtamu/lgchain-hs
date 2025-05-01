@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module MyLib (someFunc) where
 
 someFunc :: IO ()

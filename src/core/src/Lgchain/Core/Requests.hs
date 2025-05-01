@@ -25,23 +25,23 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (Lift)
 import Lgchain.Core.Utils (takeAfterLastDot)
 
-data Role = System | User | Model deriving (Eq)
+data Role = System | User | Assistant deriving (Eq)
 
 instance Show Role where
   show System = "system"
   show User = "user"
-  show Model = "model"
+  show Assistant = "assistant"
 
 instance ToJSON Role where
   toJSON System = String $ T.pack "system"
   toJSON User = String $ T.pack "user"
-  toJSON Model = String $ T.pack "model"
+  toJSON Assistant = String $ T.pack "assistant"
 
 instance FromJSON Role where
   parseJSON (String s)
     | s == T.pack "system" = pure System
     | s == T.pack "user" = pure User
-    | s == T.pack "model" = pure Model
+    | s == T.pack "assistant" = pure Assistant
   parseJSON _ = fail "invalid role"
 
 data ReqMessage = ReqMessage {role :: Role, content :: T.Text} deriving (Eq, Show, Generic)

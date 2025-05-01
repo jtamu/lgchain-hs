@@ -64,6 +64,7 @@ library
   -- cabal-fmt: expand src -Main
   exposed-modules:
     Lgchain.Core.Clients
+    Lgchain.Core.Histories.ChatMessageHistories
     Lgchain.Core.Requests
     Lgchain.Core.Utils
     MyLib

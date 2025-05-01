@@ -19,7 +19,7 @@ import Data.Map qualified as M
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Language.Haskell.TH.Syntax (Lift)
-import Lgchain.Core.Requests qualified as Core (JsonSchema (properties), JsonSchemaDefinition (JsonSchemaDefinition), JsonSchemaProperty (JsonSchemaProperty), PropertyType (BooleanType, DoubleType, IntType, ListType, StringType), Role (Model, System, User))
+import Lgchain.Core.Requests qualified as Core (JsonSchema (properties), JsonSchemaDefinition (JsonSchemaDefinition), JsonSchemaProperty (JsonSchemaProperty), PropertyType (BooleanType, DoubleType, IntType, ListType, StringType), Role (Assistant, System, User))
 
 newtype Role = Role Core.Role
 
@@ -32,18 +32,18 @@ instance Eq Role where
 instance Show Role where
   show (Role Core.System) = "user"
   show (Role Core.User) = "user"
-  show (Role Core.Model) = "model"
+  show (Role Core.Assistant) = "assistant"
 
 instance FromJSON Role where
   parseJSON (String s)
     | s == "user" = pure $ Role Core.User
-    | s == "model" = pure $ Role Core.Model
-  parseJSON _ = fail "Expected \"model\" or \"user\""
+    | s == "assistant" = pure $ Role Core.Assistant
+  parseJSON _ = fail "Expected \"assistant\" or \"user\""
 
 instance ToJSON Role where
   toJSON (Role Core.System) = String "user"
   toJSON (Role Core.User) = String "user"
-  toJSON (Role Core.Model) = String "model"
+  toJSON (Role Core.Assistant) = String "assistant"
 
 -- | パート型
 newtype Part = Part
