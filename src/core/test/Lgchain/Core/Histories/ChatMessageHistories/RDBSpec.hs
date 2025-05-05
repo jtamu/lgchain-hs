@@ -5,10 +5,8 @@ module Lgchain.Core.Histories.ChatMessageHistories.RDBSpec where
 import Lgchain.Core.Histories.ChatMessageHistories (ChatMessageHistory(getMessages, addMessage, deleteMessages))
 import Lgchain.Core.Histories.ChatMessageHistories.RDB (SqliteChatMessageHistory(SqliteChatMessageHistory), migrate)
 import Lgchain.Core.Requests (ReqMessage(ReqMessage), Role(System, User, Assistant))
-import Test.Hspec (Spec, describe, context, it, beforeAll, afterAll, shouldBe, shouldMatchList)
+import Test.Hspec (Spec, describe, it, shouldBe, shouldMatchList)
 import Data.Text (Text)
-import Control.Exception (bracket)
-import System.IO.Temp (withSystemTempFile)
 
 spec :: Spec
 spec = describe "SqliteChatMessageHistory" $ do
@@ -24,6 +22,7 @@ spec = describe "SqliteChatMessageHistory" $ do
       let history1 = SqliteChatMessageHistory dbPath "session-1"
       let history2 = SqliteChatMessageHistory dbPath "session-2"
       _ <- migrate history1
+      _ <- migrate history2
       
       let message1 = ReqMessage System "System message for session 1"
       let message2 = ReqMessage User "User message for session 1"
@@ -76,6 +75,7 @@ spec = describe "SqliteChatMessageHistory" $ do
       let history1 = SqliteChatMessageHistory dbPath "session-1"
       let history2 = SqliteChatMessageHistory dbPath "session-2"
       _ <- migrate history1
+      _ <- migrate history2
       
       let message1 = ReqMessage System "System message for session 1"
       let message2 = ReqMessage User "User message for session 1"
