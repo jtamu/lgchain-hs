@@ -65,6 +65,7 @@ library
   exposed-modules:
     Lgchain.Core.Clients
     Lgchain.Core.Histories.ChatMessageHistories
+    Lgchain.Core.Histories.ChatMessageHistories.RDB
     Lgchain.Core.Requests
     Lgchain.Core.Utils
     MyLib
@@ -78,8 +79,12 @@ library
   -- Other library packages from which modules are imported.
   build-depends:
     , aeson
-    , base              ^>=4.18.3.0
+    , base                 ^>=4.18.3.0
     , containers
+    , mtl
+    , persistent
+    , persistent-sqlite
+    , persistent-template
     , split
     , template-haskell
     , text

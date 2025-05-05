@@ -6,6 +6,7 @@
 *.hi
 *.o
 .env
+*.db
 
 cabal.project.local
 dist-newstyle/

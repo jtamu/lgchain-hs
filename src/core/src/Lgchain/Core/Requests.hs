@@ -8,6 +8,7 @@ module Lgchain.Core.Requests where
 import Data.Aeson (FromJSON (parseJSON), ToJSON, Value (String), object, withObject, (.:), (.:?), (.=))
 import Data.Aeson.Key (fromText)
 import Data.Aeson.Types (toJSON)
+import Data.List (isPrefixOf)
 import Data.Map qualified as M
 import Data.Text (Text, pack)
 import Data.Text qualified as T
@@ -26,6 +27,13 @@ import Language.Haskell.TH.Syntax (Lift)
 import Lgchain.Core.Utils (takeAfterLastDot)
 
 data Role = System | User | Assistant deriving (Eq)
+
+instance Read Role where
+  readsPrec _ s
+    | "system" `isPrefixOf` s = [(System, drop 6 s)]
+    | "user" `isPrefixOf` s = [(User, drop 4 s)]
+    | "assistant" `isPrefixOf` s = [(Assistant, drop 9 s)]
+    | otherwise = []
 
 instance Show Role where
   show System = "system"
