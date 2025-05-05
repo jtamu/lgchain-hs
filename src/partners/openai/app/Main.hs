@@ -30,17 +30,17 @@ sampleHistories =
   ]
 
 sampleHistory :: SqliteChatMessageHistory
-sampleHistory = SqliteChatMessageHistory "database.db"
+sampleHistory = SqliteChatMessageHistory "database.db" "2"
 
 main :: IO ()
 main = do
   -- 履歴初期化
   migrate sampleHistory
-  deleteMessages sampleHistory "2"
-  mapM_ (addMessage sampleHistory "2") sampleHistories
+  deleteMessages sampleHistory
+  mapM_ (addMessage sampleHistory) sampleHistories
 
   -- LLM呼び出し
-  messages <- getMessages sampleHistory "2"
+  messages <- getMessages sampleHistory
   let userMessage = ReqMessage User "Do you understand my name?"
   let prompt =
         [ReqMessage System "You are a helpful assistant."]
@@ -53,7 +53,7 @@ main = do
   maybeRes <- invoke chain Nothing <&> strOutput
   case maybeRes of
     Just res -> do
-      addMessage sampleHistory "2" userMessage
-      addMessage sampleHistory "2" . ReqMessage Assistant . T.pack $ res
-      getMessages sampleHistory "2" >>= print
+      addMessage sampleHistory userMessage
+      addMessage sampleHistory . ReqMessage Assistant . T.pack $ res
+      getMessages sampleHistory >>= print
     Nothing -> putStrLn "failed"
