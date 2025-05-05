@@ -6,7 +6,7 @@ import Lgchain.Core.Histories.ChatMessageHistories (ChatMessageHistory(getMessag
 import Lgchain.Core.Histories.ChatMessageHistories.RDB (SqliteChatMessageHistory(SqliteChatMessageHistory), migrate)
 import Lgchain.Core.Requests (ReqMessage(ReqMessage), Role(System, User, Assistant))
 import Test.Hspec (Spec, describe, it, shouldBe, shouldMatchList)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 
 spec :: Spec
 spec = describe "SqliteChatMessageHistory" $ do
