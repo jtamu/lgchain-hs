@@ -5,10 +5,9 @@ module Lgchain.Core.Histories.ChatMessageHistories.RDBSpec where
 import Lgchain.Core.Histories.ChatMessageHistories (ChatMessageHistory(getMessages, addMessage, deleteMessages))
 import Lgchain.Core.Histories.ChatMessageHistories.RDB (SqliteChatMessageHistory(SqliteChatMessageHistory), migrate)
 import Lgchain.Core.Requests (ReqMessage(ReqMessage), Role(System, User, Assistant))
-import Test.Hspec (Spec, describe, it, beforeAll, afterAll, shouldBe, shouldMatchList, around)
-import Data.Text (Text, pack)
+import Test.Hspec (Spec, describe, it, shouldBe, shouldMatchList, around)
+import Data.Text (pack)
 import System.IO.Temp (withSystemTempFile)
-import Control.Exception (bracket)
 
 spec :: Spec
 spec = describe "SqliteChatMessageHistory" $ do
