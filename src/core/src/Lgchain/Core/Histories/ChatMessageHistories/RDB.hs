@@ -37,7 +37,7 @@ import Database.Persist.TH
     share,
     sqlSettings,
   )
-import Lgchain.Core.Histories.ChatMessageHistories (ChatHistoryData (ChatHistoryData, message), ChatMessageHistory (deleteMessages), SessionId, addMessage, getMessages)
+import Lgchain.Core.Histories.ChatMessageHistories (ChatMessageHistory (deleteMessages), SessionId, addMessage, getMessages)
 import Lgchain.Core.Requests (ReqMessage (ReqMessage, content, role))
 import Text.Read (readMaybe)
 
@@ -51,47 +51,49 @@ ChatHistory
     deriving Show
 |]
 
-migrate' :: T.Text -> IO ()
+type SchemaName = T.Text
+
+migrate' :: SchemaName -> IO ()
 migrate' schemaName = runSqlite schemaName (runMigration migrateAll)
 
-fromDomain :: ChatHistoryData -> ChatHistory
-fromDomain (ChatHistoryData sessionId message) =
-  ChatHistory (show sessionId) (show $ role message) (T.unpack $ content message)
+fromDomain :: SessionId -> ReqMessage -> ChatHistory
+fromDomain sessionId reqMessage =
+  ChatHistory sessionId (show $ role reqMessage) (T.unpack $ content reqMessage)
 
-toDomain :: Entity ChatHistory -> Maybe ChatHistoryData
+toDomain :: Entity ChatHistory -> Maybe ReqMessage
 toDomain (Entity _ history) = do
   readRole <- readMaybe (chatHistoryRole history)
-  return $ ChatHistoryData (read $ chatHistorySessionId history) (ReqMessage readRole $ T.pack $ chatHistoryContent history)
+  return $ ReqMessage readRole $ T.pack $ chatHistoryContent history
 
-saveHistory :: T.Text -> ChatHistory -> IO (Key ChatHistory)
+saveHistory :: SchemaName -> ChatHistory -> IO (Key ChatHistory)
 saveHistory schemaName history = runSqlite schemaName $ insert history
 
-getHistoriesBySessionId :: T.Text -> SessionId -> IO [Entity ChatHistory]
-getHistoriesBySessionId schemaName sessionId = runSqlite schemaName $ selectList [ChatHistorySessionId ==. show sessionId] []
+getHistoriesBySessionId :: SchemaName -> SessionId -> IO [Entity ChatHistory]
+getHistoriesBySessionId schemaName sessionId = runSqlite schemaName $ selectList [ChatHistorySessionId ==. sessionId] []
 
-deleteHistoriesBySessionId :: T.Text -> SessionId -> IO ()
-deleteHistoriesBySessionId schemaName sessionId = runSqlite schemaName $ deleteWhere [ChatHistorySessionId ==. show sessionId]
+deleteHistoriesBySessionId :: SchemaName -> SessionId -> IO ()
+deleteHistoriesBySessionId schemaName sessionId = runSqlite schemaName $ deleteWhere [ChatHistorySessionId ==. sessionId]
 
-newtype SqliteChatMessageHistory = SqliteChatMessageHistory
-  { schemaName :: T.Text
+data SqliteChatMessageHistory = SqliteChatMessageHistory
+  { schemaName :: SchemaName,
+    sessionId :: SessionId
   }
 
 migrate :: SqliteChatMessageHistory -> IO ()
-migrate (SqliteChatMessageHistory schema) = migrate' schema
+migrate (SqliteChatMessageHistory schema _) = migrate' schema
 
 instance ChatMessageHistory SqliteChatMessageHistory where
-  getMessages :: SqliteChatMessageHistory -> SessionId -> IO [ReqMessage]
-  getMessages (SqliteChatMessageHistory schema) sessionId = do
+  getMessages :: SqliteChatMessageHistory -> IO [ReqMessage]
+  getMessages (SqliteChatMessageHistory schema sessionId) = do
     gotHistories <- getHistoriesBySessionId schema sessionId
     let histories = toDomain <$> gotHistories
-    return $ message <$> catMaybes histories
+    return $ catMaybes histories
 
-  addMessage :: SqliteChatMessageHistory -> SessionId -> ReqMessage -> IO ()
-  addMessage (SqliteChatMessageHistory schema) sessionId reqMessage = do
-    let chatHistoryData = ChatHistoryData sessionId reqMessage
-    let chatHistory = fromDomain chatHistoryData
+  addMessage :: SqliteChatMessageHistory -> ReqMessage -> IO ()
+  addMessage (SqliteChatMessageHistory schema sessionId) reqMessage = do
+    let chatHistory = fromDomain sessionId reqMessage
     _ <- saveHistory schema chatHistory
     return ()
 
-  deleteMessages :: SqliteChatMessageHistory -> SessionId -> IO ()
-  deleteMessages (SqliteChatMessageHistory schema) = deleteHistoriesBySessionId schema
+  deleteMessages :: SqliteChatMessageHistory -> IO ()
+  deleteMessages (SqliteChatMessageHistory schema sessionId) = deleteHistoriesBySessionId schema sessionId
