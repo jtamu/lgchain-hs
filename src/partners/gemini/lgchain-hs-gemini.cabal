@@ -84,6 +84,7 @@ library
     , http-conduit
     , http-types
     , lgchain-hs-core
+    , raw-strings-qq
     , split
     , string-conversions
     , template-haskell

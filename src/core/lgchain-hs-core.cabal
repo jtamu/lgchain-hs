@@ -63,6 +63,7 @@ library
   -- Modules exported by the library.
   -- cabal-fmt: expand src -Main
   exposed-modules:
+    Lgchain.Core.Agents
     Lgchain.Core.Clients
     Lgchain.Core.Histories.ChatMessageHistories
     Lgchain.Core.Histories.ChatMessageHistories.RDB
@@ -108,8 +109,7 @@ test-suite lgchain-hs-core-test
 
   -- Modules included in this executable, other than Main.
   -- cabal-fmt: expand test -Spec
-  other-modules:
-    Lgchain.Core.Histories.ChatMessageHistories.RDBSpec
+  other-modules:    Lgchain.Core.Histories.ChatMessageHistories.RDBSpec
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
