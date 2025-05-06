@@ -11,7 +11,7 @@ import Data.ByteString.Lazy qualified as BS
 import Data.Map qualified as M
 import Data.Maybe (fromJust)
 import GHC.Generics (Generic)
-import Lgchain.Core.Clients (Chain (Chain, StrChain), strOutput, structedOutput)
+import Lgchain.Core.Clients (Chain (Chain, StrChain), strOutput, structedOutput, LgchainError)
 import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), deriveJsonSchema)
 import Requests (GenerateContentRequest)
 import Responses (Candidate (Candidate), GenerateContentResponse (GenerateContentResponse))
@@ -172,7 +172,7 @@ spec = describe "Clients" $ do
                 ]
         let resBody = GenerateContentResponse [Candidate (Res.Content [Res.Part "response message"] "assistant")]
         let output = buildOutput chain resBody
-        (strOutput =<< output) `shouldBe` Just "response message"
+        (strOutput =<< either (const Nothing) Just output) `shouldBe` Just "response message"
 
     context "構造化出力の場合" $ do
       it "出力が正しいこと" $ do
@@ -199,4 +199,4 @@ spec = describe "Clients" $ do
                     )
                 ]
         let output = buildOutput chain resBody
-        (structedOutput =<< output) `shouldBe` Just (Recipe ["ing1", "ing2"] ["step1", "step2"])
+        (structedOutput =<< either (const Nothing) Just output) `shouldBe` Just (Recipe ["ing1", "ing2"] ["step1", "step2"])
