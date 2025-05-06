@@ -4,7 +4,6 @@
 module Main where
 
 import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O))
-import Data.Aeson (FromJSON)
 import Data.Functor ((<&>))
 import Data.Text qualified as T
 import GHC.Generics (Generic)
@@ -18,8 +17,6 @@ data Recipe = Recipe
     steps :: [String]
   }
   deriving (Eq, Show, Generic)
-
-instance FromJSON Recipe
 
 deriveJsonSchema ''Recipe
 

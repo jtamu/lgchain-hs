@@ -6,7 +6,7 @@ module ClientsSpec where
 
 import Clients (ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH), buildOutput, buildReqBody)
 import Codec.Binary.UTF8.String qualified as UTF8
-import Data.Aeson (FromJSON, decode)
+import Data.Aeson (decode)
 import Data.ByteString.Lazy qualified as BS
 import Data.Map qualified as M
 import Data.Maybe (fromJust)

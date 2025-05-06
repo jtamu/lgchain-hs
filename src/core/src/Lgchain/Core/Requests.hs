@@ -21,7 +21,6 @@ import Language.Haskell.TH
     Q,
     Type (AppT, ConT, ListT),
     conT,
-    isInstance,
     reify,
   )
 import Language.Haskell.TH.Syntax (Lift)
