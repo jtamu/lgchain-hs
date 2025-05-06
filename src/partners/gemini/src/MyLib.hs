@@ -7,6 +7,7 @@ module MyLib where
 import Clients (ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH))
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Maybe (MaybeT (MaybeT, runMaybeT))
+import Control.Monad.Trans.Except (ExceptT(ExceptT), runExceptT)
 import Data.Functor (void, (<&>))
 import Data.List (isPrefixOf)
 import Data.Map qualified as M
@@ -14,7 +15,7 @@ import Data.Maybe (fromJust)
 import Data.Text (Text, pack)
 import GHC.Generics (Generic)
 import Lgchain.Core.Agents (AgentNode (run))
-import Lgchain.Core.Clients (Chain (Chain, StrChain), invoke, strOutput, structedOutput)
+import Lgchain.Core.Clients (Chain (Chain, StrChain), invoke, strOutput, structedOutput, LgchainError(..))
 import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), deriveJsonSchema)
 import Text.RawString.QQ (r)
 
@@ -49,8 +50,11 @@ instance AgentNode (MaybeT IO) SelectionNode ExampleState where
           ]
     let model = ChatGemini GEMINI_1_5_FLASH
     let chain = StrChain model prompt
-    res <- invoke chain (Just $ M.singleton "{query}" $ query state)
-    roleNum <- MaybeT $ return $ strOutput res
+    res <- MaybeT $ do
+      result <- runExceptT $ invoke chain (Just $ M.singleton "{query}" $ query state)
+      return $ case result of
+        Left _ -> Nothing
+        Right output -> strOutput output
     let role
           | "1" `isPrefixOf` roleNum = Just "一般知識エキスパート"
           | "2" `isPrefixOf` roleNum = Just "生成AI製品エキスパート"
@@ -80,8 +84,11 @@ instance AgentNode (MaybeT IO) AnsweringNode ExampleState where
           ]
     let model = ChatGemini GEMINI_1_5_FLASH
     let chain = StrChain model prompt
-    res <- invoke chain (Just $ M.fromList [("role", pack $ fromJust $ currentRole state), ("query", query state)])
-    message <- MaybeT $ return $ strOutput res
+    message <- MaybeT $ do
+      result <- runExceptT $ invoke chain (Just $ M.fromList [("role", pack $ fromJust $ currentRole state), ("query", query state)])
+      return $ case result of
+        Left _ -> Nothing
+        Right output -> strOutput output
     return $ state {messages = messages state ++ [message]}
 
 data CheckNode = CheckNode
@@ -108,8 +115,11 @@ instance AgentNode (MaybeT IO) CheckNode ExampleState where
           ]
     let model = ChatGemini GEMINI_1_5_FLASH
     let chain = Chain model prompt (undefined :: Judgement)
-    res <- invoke chain (Just $ M.fromList [("query", query state), ("answer", pack $ last $ messages state)])
-    judge <- MaybeT $ return $ structedOutput res
+    judge <- MaybeT $ do
+      result <- runExceptT $ invoke chain (Just $ M.fromList [("query", query state), ("answer", pack $ last $ messages state)])
+      return $ case result of
+        Left _ -> Nothing
+        Right output -> structedOutput output
     return $ state {currentJudge = Just $ judgement judge, judgementReason = Just $ reason judge}
 
 exampleWorkflow :: ExampleState -> MaybeT IO ExampleState
@@ -158,6 +168,10 @@ someFunc =
           let model = ChatGemini GEMINI_1_5_FLASH
           let chain = Chain model prompt (undefined :: Recipe)
           let formatMap = M.fromList [("{dish}", "カレー")]
-          res <- invoke chain (Just formatMap)
-          liftIO $ print $ fromJust $ structedOutput res
+          res <- MaybeT $ do
+            result <- runExceptT $ invoke chain (Just formatMap)
+            return $ case result of
+              Left _ -> Nothing
+              Right output -> structedOutput output
+          liftIO $ print $ fromJust res
       )

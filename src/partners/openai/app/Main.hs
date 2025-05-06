@@ -7,9 +7,10 @@ import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O))
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Maybe (MaybeT (MaybeT, runMaybeT))
+import Control.Monad.Trans.Except (ExceptT(ExceptT), runExceptT)
 import Data.Text qualified as T
 import GHC.Generics (Generic)
-import Lgchain.Core.Clients (Chain (StrChain), invoke, strOutput)
+import Lgchain.Core.Clients (Chain (StrChain), invoke, strOutput, LgchainError(..))
 import Lgchain.Core.Histories.ChatMessageHistories (ChatMessageHistory (addMessage, deleteMessages), getMessages)
 import Lgchain.Core.Histories.ChatMessageHistories.RDB (SqliteChatMessageHistory (SqliteChatMessageHistory), migrate)
 import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (Assistant, System, User), deriveJsonSchema)
@@ -49,8 +50,11 @@ main = void $ runMaybeT $ do
   let chain = StrChain model prompt
 
   -- 履歴保存
-  maybeRes <- invoke chain Nothing
-  res <- MaybeT $ return $ strOutput maybeRes
+  res <- MaybeT $ do
+    result <- runExceptT $ invoke chain Nothing
+    return $ case result of
+      Left _ -> Nothing
+      Right output -> strOutput output
   liftIO $ addMessage sampleHistory userMessage
   liftIO $ addMessage sampleHistory . ReqMessage Assistant . T.pack $ res
   liftIO $ getMessages sampleHistory >>= print

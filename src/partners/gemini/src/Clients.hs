@@ -5,11 +5,12 @@ module Clients where
 import Codec.Binary.UTF8.String qualified as UTF8
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Control.Monad.Trans.Maybe (MaybeT (MaybeT))
+import Control.Monad.Trans.Except (ExceptT(ExceptT), throwE)
 import Data.Aeson (decode)
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
 import Data.Text qualified as T
-import Lgchain.Core.Clients (Chain (Chain, StrChain), LLMModel (invokeStr, invokeWithSchema), Output (StrOutput, StructedOutput))
+import Lgchain.Core.Clients (Chain (Chain, StrChain), LLMModel (invokeStr, invokeWithSchema), Output (StrOutput, StructedOutput), LgchainError(..))
 import Lgchain.Core.Requests (FormatMap, JsonSchemaConvertable (convertJson), ReqMessage (ReqMessage), formatPrompt)
 import Network.HTTP.Simple (getResponseBody, httpJSON, parseRequest_, setRequestBodyJSON, setRequestHeaders, setRequestQueryString)
 import Network.HTTP.Types (hContentType)
@@ -51,11 +52,15 @@ buildReqBody (StrChain _ prompt) maybeFormat =
   where
     contents = [Content (Role role) [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
 
-buildOutput :: Chain b a -> GenerateContentResponse -> Maybe (Output a)
-buildOutput (Chain {}) res = extractStructedOutput res
-buildOutput (StrChain _ _) res = StrOutput <$> extractStrOutput res
+buildOutput :: Chain b a -> GenerateContentResponse -> Either LgchainError (Output a)
+buildOutput (Chain {}) res = case extractStructedOutput res of
+  Just output -> Right output
+  Nothing -> Left $ ParsingError "Failed to parse structured output from response"
+buildOutput (StrChain _ _) res = case extractStrOutput res of
+  Just str -> Right $ StrOutput str
+  Nothing -> Left $ ParsingError "Failed to extract string output from response"
 
-invokeGemini :: Chain ChatGemini a -> Maybe FormatMap -> MaybeT IO (Output a)
+invokeGemini :: Chain ChatGemini a -> Maybe FormatMap -> ExceptT LgchainError IO (Output a)
 invokeGemini chain formatMap = do
   geminiApiKey <- liftIO $ getEnv "GEMINI_API_KEY"
   let model = case chain of
@@ -69,9 +74,12 @@ invokeGemini chain formatMap = do
             setRequestQueryString [("key", Just $ BS.pack $ UTF8.encode geminiApiKey)] $
               parseRequest_ $
                 "POST https://generativelanguage.googleapis.com/v1beta/models/" ++ modelName ++ ":generateContent"
-  res <- httpJSON req
-  let resBody = getResponseBody res
-  MaybeT $ return $ buildOutput chain resBody
+  res <- liftIO $ do
+    response <- httpJSON req
+    return $ getResponseBody response
+  case buildOutput chain res of
+    Right output -> return output
+    Left err -> throwE err
 
 instance LLMModel ChatGemini where
   invokeWithSchema model prompt schema = invokeGemini (Chain model prompt schema)
