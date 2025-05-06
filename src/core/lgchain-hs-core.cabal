@@ -109,6 +109,7 @@ test-suite lgchain-hs-core-test
   -- Modules included in this executable, other than Main.
   -- cabal-fmt: expand test -Spec
   other-modules:
+    Lgchain.Core.Histories.ChatMessageHistories.RDBSpec
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
@@ -126,3 +127,5 @@ test-suite lgchain-hs-core-test
   build-depends:
     , base             ^>=4.18.3.0
     , lgchain-hs-core
+    , temporary
+    , text
