@@ -205,10 +205,7 @@ deriveJsonSchema name = do
    in case edefinition of
         Right definition -> do
           jsInst <- [d|instance JsonSchemaConvertable $(conT name) where convertJson _ = definition|]
-          fromJSONExists <- isInstance ''FromJSON [ConT name]
-          jsonInst <- if fromJSONExists
-                      then return []
-                      else [d|instance FromJSON $(conT name)|]
+          jsonInst <- [d|instance FromJSON $(conT name)|]
           return $ jsInst ++ jsonInst
         Left e -> fail e
 

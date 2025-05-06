@@ -25,8 +25,6 @@ data Recipe = Recipe
   }
   deriving (Eq, Show, Generic)
 
-instance FromJSON Recipe
-
 deriveJsonSchema ''Recipe
 
 reqBodyFromStr :: String -> GenerateContentRequest
