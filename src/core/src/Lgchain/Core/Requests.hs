@@ -202,7 +202,10 @@ deriveJsonSchema name = do
   let tup = [(fname, ftype) | (fname, _, ftype) <- fields]
       edefinition = mapSchemaDefinition name tup
    in case edefinition of
-        Right definition -> [d|instance JsonSchemaConvertable $(conT name) where convertJson _ = definition|]
+        Right definition -> do
+          jsInst <- [d|instance JsonSchemaConvertable $(conT name) where convertJson _ = definition|]
+          jsonInst <- [d|instance FromJSON $(conT name)|]
+          return $ jsInst ++ jsonInst
         Left e -> fail e
 
 mapSchemaDefinition :: Name -> [(Name, Type)] -> Either String JsonSchemaDefinition

@@ -6,7 +6,7 @@ module ClientsSpec where
 
 import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O), buildOutput, buildReqBody)
 import Codec.Binary.UTF8.String qualified as UTF8
-import Data.Aeson (FromJSON, decode)
+import Data.Aeson (decode)
 import Data.ByteString.Lazy qualified as BS
 import Data.Map qualified as M
 import Data.Maybe (fromJust)
@@ -22,8 +22,6 @@ data Recipe = Recipe
     steps :: [String]
   }
   deriving (Eq, Show, Generic)
-
-instance FromJSON Recipe
 
 deriveJsonSchema ''Recipe
 

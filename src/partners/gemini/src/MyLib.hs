@@ -5,7 +5,6 @@
 module MyLib where
 
 import Clients (ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH))
-import Data.Aeson (FromJSON)
 import Data.Functor ((<&>))
 import Data.List (isPrefixOf)
 import Data.Map qualified as M
@@ -92,8 +91,6 @@ data Judgement = Judgement
   }
   deriving (Eq, Show, Generic)
 
-instance FromJSON Judgement
-
 deriveJsonSchema ''Judgement
 
 instance AgentNode CheckNode ExampleState where
@@ -148,8 +145,6 @@ data Recipe = Recipe
     steps :: [String]
   }
   deriving (Eq, Show, Generic)
-
-instance FromJSON Recipe
 
 deriveJsonSchema ''Recipe
 
