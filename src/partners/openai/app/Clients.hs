@@ -5,11 +5,11 @@ module Clients where
 
 import Codec.Binary.UTF8.String qualified as UTF8
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Maybe (MaybeT (MaybeT))
+import Control.Monad.Trans.Except (throwE)
 import Data.Aeson (decode)
 import Data.ByteString.Char8 qualified as BS
 import Data.ByteString.Lazy qualified as LBS
-import Lgchain.Core.Clients (Chain (Chain, StrChain), LLMModel (invokeStr, invokeWithSchema), Output (StrOutput, StructedOutput))
+import Lgchain.Core.Clients (Chain (Chain, StrChain), ExceptIO, LLMModel (invokeStr, invokeWithSchema), LgchainError (ParsingError), Output (StrOutput, StructedOutput))
 import Lgchain.Core.Requests (FormatMap, FormatType (JsonFormat), JsonSchemaConvertable (convertJson), ReqBody (ReqBody), ResponseFormat (ResponseFormat), formatPrompt)
 import Network.HTTP.Conduit (parseRequest_)
 import Network.HTTP.Simple (getResponseBody, httpJSON, setRequestBodyJSON, setRequestHeaders)
@@ -39,6 +39,14 @@ extractStructedOutput res = do
   decoded <- decode $ LBS.pack $ UTF8.encode str
   return $ StructedOutput decoded
 
+buildOutput :: Chain ChatOpenAI a -> ResBody -> Either LgchainError (Output a)
+buildOutput (StrChain _ _) res = case extractStrOutput res of
+  Just str -> Right $ StrOutput str
+  Nothing -> Left $ ParsingError "Failed to extract string output from response"
+buildOutput (Chain {}) res = case extractStructedOutput res of
+  Just output -> Right output
+  Nothing -> Left $ ParsingError "Failed to parse structured output from response"
+
 instance LLMModel ChatOpenAI where
   invokeWithSchema model prompt schema maybeFormat =
     let chain = Chain model prompt schema in invokeOpenai chain maybeFormat
@@ -56,11 +64,7 @@ buildReqBody (StrChain model prompt) maybeFormat =
   where
     formattedPrompt = maybe prompt (`formatPrompt` prompt) maybeFormat
 
-buildOutput :: Chain ChatOpenAI a -> ResBody -> Maybe (Output a)
-buildOutput (StrChain _ _) res = StrOutput <$> extractStrOutput res
-buildOutput (Chain {}) res = extractStructedOutput res
-
-invokeOpenai :: Chain ChatOpenAI a -> Maybe FormatMap -> MaybeT IO (Output a)
+invokeOpenai :: Chain ChatOpenAI a -> Maybe FormatMap -> ExceptIO (Output a)
 invokeOpenai chain formatMap = do
   openaiApiKey <- liftIO $ getEnv "OPENAI_API_KEY"
   let reqbody = buildReqBody chain formatMap
@@ -68,6 +72,9 @@ invokeOpenai chain formatMap = do
         setRequestHeaders [(hAuthorization, BS.pack $ "Bearer " ++ openaiApiKey), (hContentType, BS.pack "application/json")] $
           setRequestBodyJSON reqbody $
             parseRequest_ "POST https://api.openai.com/v1/chat/completions"
-  res <- httpJSON req
-  let resBody = getResponseBody res
-  MaybeT $ return $ buildOutput chain resBody
+  res <- liftIO $ do
+    response <- httpJSON req
+    return $ getResponseBody response
+  case buildOutput chain res of
+    Right output -> return output
+    Left err -> throwE err
