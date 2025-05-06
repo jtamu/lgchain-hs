@@ -83,6 +83,7 @@ library
     , string-conversions
     , template-haskell
     , text
+    , transformers
     , utf8-string
 
   -- Directories containing source files.
@@ -121,6 +122,7 @@ executable lgchain-hs-openai
     , string-conversions
     , template-haskell
     , text
+    , transformers
     , utf8-string
 
   -- Directories containing source files.

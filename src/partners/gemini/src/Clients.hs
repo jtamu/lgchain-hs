@@ -3,6 +3,8 @@
 module Clients where
 
 import Codec.Binary.UTF8.String qualified as UTF8
+import Control.Monad.IO.Class (MonadIO (liftIO))
+import Control.Monad.Trans.Maybe (MaybeT (MaybeT))
 import Data.Aeson (decode)
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
@@ -53,9 +55,9 @@ buildOutput :: Chain b a -> GenerateContentResponse -> Maybe (Output a)
 buildOutput (Chain {}) res = extractStructedOutput res
 buildOutput (StrChain _ _) res = StrOutput <$> extractStrOutput res
 
-invokeGemini :: Chain ChatGemini a -> Maybe FormatMap -> IO (Maybe (Output a))
+invokeGemini :: Chain ChatGemini a -> Maybe FormatMap -> MaybeT IO (Output a)
 invokeGemini chain formatMap = do
-  geminiApiKey <- getEnv "GEMINI_API_KEY"
+  geminiApiKey <- liftIO $ getEnv "GEMINI_API_KEY"
   let model = case chain of
         Chain m _ _ -> m
         StrChain m _ -> m
@@ -69,7 +71,7 @@ invokeGemini chain formatMap = do
                 "POST https://generativelanguage.googleapis.com/v1beta/models/" ++ modelName ++ ":generateContent"
   res <- httpJSON req
   let resBody = getResponseBody res
-  return $ buildOutput chain resBody
+  MaybeT $ return $ buildOutput chain resBody
 
 instance LLMModel ChatGemini where
   invokeWithSchema model prompt schema = invokeGemini (Chain model prompt schema)

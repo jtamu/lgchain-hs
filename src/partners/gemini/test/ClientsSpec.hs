@@ -172,7 +172,7 @@ spec = describe "Clients" $ do
                 ]
         let resBody = GenerateContentResponse [Candidate (Res.Content [Res.Part "response message"] "assistant")]
         let output = buildOutput chain resBody
-        fromJust (strOutput output) `shouldBe` "response message"
+        (strOutput =<< output) `shouldBe` Just "response message"
 
     context "構造化出力の場合" $ do
       it "出力が正しいこと" $ do
@@ -199,4 +199,4 @@ spec = describe "Clients" $ do
                     )
                 ]
         let output = buildOutput chain resBody
-        fromJust (structedOutput output) `shouldBe` Recipe ["ing1", "ing2"] ["step1", "step2"]
+        (structedOutput =<< output) `shouldBe` Just (Recipe ["ing1", "ing2"] ["step1", "step2"])

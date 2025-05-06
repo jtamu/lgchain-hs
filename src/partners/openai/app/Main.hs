@@ -4,7 +4,9 @@
 module Main where
 
 import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O))
-import Data.Functor ((<&>))
+import Control.Monad (void)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Maybe (MaybeT (MaybeT, runMaybeT))
 import Data.Text qualified as T
 import GHC.Generics (Generic)
 import Lgchain.Core.Clients (Chain (StrChain), invoke, strOutput)
@@ -30,14 +32,14 @@ sampleHistory :: SqliteChatMessageHistory
 sampleHistory = SqliteChatMessageHistory "database.db" "2"
 
 main :: IO ()
-main = do
+main = void $ runMaybeT $ do
   -- 履歴初期化
-  migrate sampleHistory
-  deleteMessages sampleHistory
-  mapM_ (addMessage sampleHistory) sampleHistories
+  liftIO $ migrate sampleHistory
+  liftIO $ deleteMessages sampleHistory
+  liftIO $ mapM_ (addMessage sampleHistory) sampleHistories
 
   -- LLM呼び出し
-  messages <- getMessages sampleHistory
+  messages <- liftIO $ getMessages sampleHistory
   let userMessage = ReqMessage User "Do you understand my name?"
   let prompt =
         [ReqMessage System "You are a helpful assistant."]
@@ -47,10 +49,8 @@ main = do
   let chain = StrChain model prompt
 
   -- 履歴保存
-  maybeRes <- invoke chain Nothing <&> strOutput
-  case maybeRes of
-    Just res -> do
-      addMessage sampleHistory userMessage
-      addMessage sampleHistory . ReqMessage Assistant . T.pack $ res
-      getMessages sampleHistory >>= print
-    Nothing -> putStrLn "failed"
+  maybeRes <- invoke chain Nothing
+  res <- MaybeT $ return $ strOutput maybeRes
+  liftIO $ addMessage sampleHistory userMessage
+  liftIO $ addMessage sampleHistory . ReqMessage Assistant . T.pack $ res
+  liftIO $ getMessages sampleHistory >>= print

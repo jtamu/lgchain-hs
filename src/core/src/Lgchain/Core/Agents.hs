@@ -1,4 +1,6 @@
 module Lgchain.Core.Agents where
 
-class AgentNode a b where
-  run :: a -> b -> IO b
+import Control.Monad.IO.Class (MonadIO)
+
+class (MonadIO m) => AgentNode m a b where
+  run :: a -> b -> m b

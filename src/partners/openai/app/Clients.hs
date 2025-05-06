@@ -4,6 +4,8 @@
 module Clients where
 
 import Codec.Binary.UTF8.String qualified as UTF8
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Maybe (MaybeT (MaybeT))
 import Data.Aeson (decode)
 import Data.ByteString.Char8 qualified as BS
 import Data.ByteString.Lazy qualified as LBS
@@ -58,9 +60,9 @@ buildOutput :: Chain ChatOpenAI a -> ResBody -> Maybe (Output a)
 buildOutput (StrChain _ _) res = StrOutput <$> extractStrOutput res
 buildOutput (Chain {}) res = extractStructedOutput res
 
-invokeOpenai :: Chain ChatOpenAI a -> Maybe FormatMap -> IO (Maybe (Output a))
+invokeOpenai :: Chain ChatOpenAI a -> Maybe FormatMap -> MaybeT IO (Output a)
 invokeOpenai chain formatMap = do
-  openaiApiKey <- getEnv "OPENAI_API_KEY"
+  openaiApiKey <- liftIO $ getEnv "OPENAI_API_KEY"
   let reqbody = buildReqBody chain formatMap
   let req =
         setRequestHeaders [(hAuthorization, BS.pack $ "Bearer " ++ openaiApiKey), (hContentType, BS.pack "application/json")] $
@@ -68,4 +70,4 @@ invokeOpenai chain formatMap = do
             parseRequest_ "POST https://api.openai.com/v1/chat/completions"
   res <- httpJSON req
   let resBody = getResponseBody res
-  return $ buildOutput chain resBody
+  MaybeT $ return $ buildOutput chain resBody

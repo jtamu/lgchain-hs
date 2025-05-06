@@ -5,7 +5,9 @@
 module MyLib where
 
 import Clients (ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH))
-import Data.Functor ((<&>))
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Maybe (MaybeT (MaybeT, runMaybeT))
+import Data.Functor (void, (<&>))
 import Data.List (isPrefixOf)
 import Data.Map qualified as M
 import Data.Maybe (fromJust)
@@ -27,7 +29,7 @@ data ExampleState = ExampleState
 
 data SelectionNode = SelectionNode
 
-instance AgentNode SelectionNode ExampleState where
+instance AgentNode (MaybeT IO) SelectionNode ExampleState where
   run _ state = do
     let prompt =
           [ ReqMessage
@@ -47,20 +49,18 @@ instance AgentNode SelectionNode ExampleState where
           ]
     let model = ChatGemini GEMINI_1_5_FLASH
     let chain = StrChain model prompt
-    res <- invoke chain (Just $ M.singleton "{query}" $ query state) <&> strOutput
-    case res of
-      Nothing -> return state
-      Just roleNum -> do
-        let role
-              | "1" `isPrefixOf` roleNum = Just "一般知識エキスパート"
-              | "2" `isPrefixOf` roleNum = Just "生成AI製品エキスパート"
-              | "3" `isPrefixOf` roleNum = Just "カウンセラー"
-              | otherwise = Nothing
-        return $ state {currentRole = role}
+    res <- invoke chain (Just $ M.singleton "{query}" $ query state)
+    roleNum <- MaybeT $ return $ strOutput res
+    let role
+          | "1" `isPrefixOf` roleNum = Just "一般知識エキスパート"
+          | "2" `isPrefixOf` roleNum = Just "生成AI製品エキスパート"
+          | "3" `isPrefixOf` roleNum = Just "カウンセラー"
+          | otherwise = Nothing
+    return $ state {currentRole = role}
 
 data AnsweringNode = AnsweringNode
 
-instance AgentNode AnsweringNode ExampleState where
+instance AgentNode (MaybeT IO) AnsweringNode ExampleState where
   run _ state = do
     let prompt =
           [ ReqMessage
@@ -81,7 +81,8 @@ instance AgentNode AnsweringNode ExampleState where
     let model = ChatGemini GEMINI_1_5_FLASH
     let chain = StrChain model prompt
     res <- invoke chain (Just $ M.fromList [("role", pack $ fromJust $ currentRole state), ("query", query state)])
-    return $ state {messages = messages state ++ [fromJust $ strOutput res]}
+    message <- MaybeT $ return $ strOutput res
+    return $ state {messages = messages state ++ [message]}
 
 data CheckNode = CheckNode
 
@@ -93,7 +94,7 @@ data Judgement = Judgement
 
 deriveJsonSchema ''Judgement
 
-instance AgentNode CheckNode ExampleState where
+instance AgentNode (MaybeT IO) CheckNode ExampleState where
   run _ state = do
     let prompt =
           [ ReqMessage
@@ -108,14 +109,14 @@ instance AgentNode CheckNode ExampleState where
     let model = ChatGemini GEMINI_1_5_FLASH
     let chain = Chain model prompt (undefined :: Judgement)
     res <- invoke chain (Just $ M.fromList [("query", query state), ("answer", pack $ last $ messages state)])
-    let judge = structedOutput res
-    return $ state {currentJudge = judgement <$> judge, judgementReason = reason <$> judge}
+    judge <- MaybeT $ return $ structedOutput res
+    return $ state {currentJudge = Just $ judgement judge, judgementReason = Just $ reason judge}
 
-exampleWorkflow :: ExampleState -> IO ExampleState
+exampleWorkflow :: ExampleState -> MaybeT IO ExampleState
 exampleWorkflow = exampleWorkflowWithCounter 0
 
 -- | 再帰呼び出しの回数を制限するための補助関数
-exampleWorkflowWithCounter :: Int -> ExampleState -> IO ExampleState
+exampleWorkflowWithCounter :: Int -> ExampleState -> MaybeT IO ExampleState
 exampleWorkflowWithCounter counter state
   | counter >= 3 = return state -- 3回以上の繰り返しで強制終了
   | otherwise = do
@@ -129,7 +130,7 @@ exampleWorkflowWithCounter counter state
         _ -> exampleWorkflowWithCounter (counter + 1) checkedState
 
 execExampleWorkflow :: IO ExampleState
-execExampleWorkflow = exampleWorkflow initState
+execExampleWorkflow = runMaybeT (exampleWorkflow initState) <&> fromJust
   where
     initState =
       ExampleState
@@ -149,10 +150,14 @@ data Recipe = Recipe
 deriveJsonSchema ''Recipe
 
 someFunc :: IO ()
-someFunc = do
-  let prompt = [ReqMessage System "ユーザが入力した料理のレシピを考えてください。", ReqMessage User "{dish}"]
-  let model = ChatGemini GEMINI_1_5_FLASH
-  let chain = Chain model prompt (undefined :: Recipe)
-  let formatMap = M.fromList [("{dish}", "カレー")]
-  res <- invoke chain (Just formatMap)
-  print $ structedOutput res
+someFunc =
+  void $
+    runMaybeT
+      ( do
+          let prompt = [ReqMessage System "ユーザが入力した料理のレシピを考えてください。", ReqMessage User "{dish}"]
+          let model = ChatGemini GEMINI_1_5_FLASH
+          let chain = Chain model prompt (undefined :: Recipe)
+          let formatMap = M.fromList [("{dish}", "カレー")]
+          res <- invoke chain (Just formatMap)
+          liftIO $ print $ fromJust $ structedOutput res
+      )
