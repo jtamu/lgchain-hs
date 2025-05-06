@@ -5,12 +5,11 @@ module Clients where
 
 import Codec.Binary.UTF8.String qualified as UTF8
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Maybe (MaybeT (MaybeT))
-import Control.Monad.Trans.Except (ExceptT(ExceptT), throwE)
+import Control.Monad.Trans.Except (throwE)
 import Data.Aeson (decode)
 import Data.ByteString.Char8 qualified as BS
 import Data.ByteString.Lazy qualified as LBS
-import Lgchain.Core.Clients (Chain (Chain, StrChain), LLMModel (invokeStr, invokeWithSchema), Output (StrOutput, StructedOutput), LgchainError(..))
+import Lgchain.Core.Clients (Chain (Chain, StrChain), ExceptIO, LLMModel (invokeStr, invokeWithSchema), LgchainError (ParsingError), Output (StrOutput, StructedOutput))
 import Lgchain.Core.Requests (FormatMap, FormatType (JsonFormat), JsonSchemaConvertable (convertJson), ReqBody (ReqBody), ResponseFormat (ResponseFormat), formatPrompt)
 import Network.HTTP.Conduit (parseRequest_)
 import Network.HTTP.Simple (getResponseBody, httpJSON, setRequestBodyJSON, setRequestHeaders)
@@ -65,9 +64,7 @@ buildReqBody (StrChain model prompt) maybeFormat =
   where
     formattedPrompt = maybe prompt (`formatPrompt` prompt) maybeFormat
 
-
-
-invokeOpenai :: Chain ChatOpenAI a -> Maybe FormatMap -> ExceptT LgchainError IO (Output a)
+invokeOpenai :: Chain ChatOpenAI a -> Maybe FormatMap -> ExceptIO (Output a)
 invokeOpenai chain formatMap = do
   openaiApiKey <- liftIO $ getEnv "OPENAI_API_KEY"
   let reqbody = buildReqBody chain formatMap

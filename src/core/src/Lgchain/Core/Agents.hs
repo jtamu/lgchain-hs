@@ -1,6 +1,6 @@
 module Lgchain.Core.Agents where
 
-import Control.Monad.IO.Class (MonadIO)
+import Lgchain.Core.Clients (ExceptIO)
 
-class (MonadIO m) => AgentNode m a b where
-  run :: a -> b -> m b
+class AgentNode a b where
+  run :: a -> b -> ExceptIO b

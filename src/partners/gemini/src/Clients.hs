@@ -4,13 +4,12 @@ module Clients where
 
 import Codec.Binary.UTF8.String qualified as UTF8
 import Control.Monad.IO.Class (MonadIO (liftIO))
-import Control.Monad.Trans.Maybe (MaybeT (MaybeT))
-import Control.Monad.Trans.Except (ExceptT(ExceptT), throwE)
+import Control.Monad.Trans.Except (ExceptT, throwE)
 import Data.Aeson (decode)
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
 import Data.Text qualified as T
-import Lgchain.Core.Clients (Chain (Chain, StrChain), LLMModel (invokeStr, invokeWithSchema), Output (StrOutput, StructedOutput), LgchainError(..))
+import Lgchain.Core.Clients (Chain (Chain, StrChain), LLMModel (invokeStr, invokeWithSchema), LgchainError (ParsingError), Output (StrOutput, StructedOutput))
 import Lgchain.Core.Requests (FormatMap, JsonSchemaConvertable (convertJson), ReqMessage (ReqMessage), formatPrompt)
 import Network.HTTP.Simple (getResponseBody, httpJSON, parseRequest_, setRequestBodyJSON, setRequestHeaders, setRequestQueryString)
 import Network.HTTP.Types (hContentType)
