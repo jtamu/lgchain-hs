@@ -5,13 +5,14 @@
 module MyLib where
 
 import Clients (ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH))
-import Control.Monad.Trans.Except (ExceptT (ExceptT), runExceptT)
+import Control.Monad.IO.Class (MonadIO (liftIO))
+import Control.Monad.Trans.Except (ExceptT (ExceptT))
 import Data.List (isPrefixOf)
 import Data.Map qualified as M
 import Data.Maybe (fromJust)
 import GHC.Generics (Generic)
 import Lgchain.Core.Agents (AgentNode (run))
-import Lgchain.Core.Clients (Chain (Chain, StrChain), ExceptIO, invoke, strOutput, structedOutput)
+import Lgchain.Core.Clients (Chain (Chain, StrChain), ExceptIO, invoke, runOrFail, strOutput, structedOutput)
 import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), ViewableText, deriveJsonSchema, vunpack)
 import Text.RawString.QQ (r)
 
@@ -127,18 +128,17 @@ exampleWorkflowWithCounter counter state
         _ -> exampleWorkflowWithCounter (counter + 1) checkedState
 
 execExampleWorkflow :: IO ()
-execExampleWorkflow = do
-  res <-
-    runExceptT $
-      exampleWorkflow
-        ExampleState
-          { query = "生成AIについて教えてください",
-            currentRole = Nothing,
-            messages = [],
-            currentJudge = Nothing,
-            judgementReason = Nothing
-          }
-  either print print res
+execExampleWorkflow = runOrFail $ do
+  state <-
+    exampleWorkflow
+      ExampleState
+        { query = "生成AIについて教えてください",
+          currentRole = Nothing,
+          messages = [],
+          currentJudge = Nothing,
+          judgementReason = Nothing
+        }
+  liftIO $ print state
 
 data Recipe = Recipe
   { ingredients :: [ViewableText],
@@ -149,12 +149,11 @@ data Recipe = Recipe
 deriveJsonSchema ''Recipe
 
 someFunc :: IO ()
-someFunc = do
-  res <- runExceptT $ do
-    let prompt = [ReqMessage System "ユーザが入力した料理のレシピを考えてください。", ReqMessage User "{dish}"]
-    let model = ChatGemini GEMINI_1_5_FLASH
-    let chain = Chain model prompt (undefined :: Recipe)
-    let formatMap = M.fromList [("{dish}", "カレー")]
-    result <- invoke chain (Just formatMap)
-    ExceptT $ return $ structedOutput result
-  either print print res
+someFunc = runOrFail $ do
+  let prompt = [ReqMessage System "ユーザが入力した料理のレシピを考えてください。", ReqMessage User "{dish}"]
+  let model = ChatGemini GEMINI_1_5_FLASH
+  let chain = Chain model prompt (undefined :: Recipe)
+  let formatMap = M.fromList [("{dish}", "カレー")]
+  result <- invoke chain (Just formatMap)
+  res <- ExceptT $ return $ structedOutput result
+  liftIO $ print res
