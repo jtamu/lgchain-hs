@@ -9,19 +9,18 @@ import Control.Monad.Trans.Except (ExceptT (ExceptT), runExceptT)
 import Data.List (isPrefixOf)
 import Data.Map qualified as M
 import Data.Maybe (fromJust)
-import Data.Text (Text, pack)
 import GHC.Generics (Generic)
 import Lgchain.Core.Agents (AgentNode (run))
 import Lgchain.Core.Clients (Chain (Chain, StrChain), ExceptIO, invoke, strOutput, structedOutput)
-import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), deriveJsonSchema)
+import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), ViewableText, deriveJsonSchema, vunpack)
 import Text.RawString.QQ (r)
 
 data ExampleState = ExampleState
-  { query :: Text,
-    currentRole :: Maybe String,
-    messages :: [String],
+  { query :: ViewableText,
+    currentRole :: Maybe ViewableText,
+    messages :: [ViewableText],
     currentJudge :: Maybe Bool,
-    judgementReason :: Maybe String
+    judgementReason :: Maybe ViewableText
   }
   deriving (Eq, Show, Generic)
 
@@ -47,12 +46,12 @@ instance AgentNode SelectionNode ExampleState where
           ]
     let model = ChatGemini GEMINI_1_5_FLASH
     let chain = StrChain model prompt
-    result <- invoke chain (Just $ M.singleton "{query}" $ query state)
+    result <- invoke chain (Just $ M.singleton "{query}" (query state))
     roleNum <- ExceptT $ return $ strOutput result
     let role
-          | "1" `isPrefixOf` roleNum = Just "一般知識エキスパート"
-          | "2" `isPrefixOf` roleNum = Just "生成AI製品エキスパート"
-          | "3" `isPrefixOf` roleNum = Just "カウンセラー"
+          | "1" `isPrefixOf` vunpack roleNum = Just "一般知識エキスパート"
+          | "2" `isPrefixOf` vunpack roleNum = Just "生成AI製品エキスパート"
+          | "3" `isPrefixOf` vunpack roleNum = Just "カウンセラー"
           | otherwise = Nothing
     return $ state {currentRole = role}
 
@@ -78,7 +77,7 @@ instance AgentNode AnsweringNode ExampleState where
           ]
     let model = ChatGemini GEMINI_1_5_FLASH
     let chain = StrChain model prompt
-    result <- invoke chain (Just $ M.fromList [("role", pack $ fromJust $ currentRole state), ("query", query state)])
+    result <- invoke chain (Just $ M.fromList [("role", fromJust $ currentRole state), ("query", query state)])
     message <- ExceptT $ return $ strOutput result
     return $ state {messages = messages state ++ [message]}
 
@@ -86,7 +85,7 @@ data CheckNode = CheckNode
 
 data Judgement = Judgement
   { judgement :: Bool,
-    reason :: String
+    reason :: ViewableText
   }
   deriving (Eq, Show, Generic)
 
@@ -106,7 +105,7 @@ instance AgentNode CheckNode ExampleState where
           ]
     let model = ChatGemini GEMINI_1_5_FLASH
     let chain = Chain model prompt (undefined :: Judgement)
-    result <- invoke chain (Just $ M.fromList [("query", query state), ("answer", pack $ last $ messages state)])
+    result <- invoke chain (Just $ M.fromList [("query", query state), ("answer", last $ messages state)])
     judge <- ExceptT $ return $ structedOutput result
     return $ state {currentJudge = Just $ judgement judge, judgementReason = Just $ reason judge}
 
@@ -142,8 +141,8 @@ execExampleWorkflow = do
   either print print res
 
 data Recipe = Recipe
-  { ingredients :: [String],
-    steps :: [String]
+  { ingredients :: [ViewableText],
+    steps :: [ViewableText]
   }
   deriving (Eq, Show, Generic)
 

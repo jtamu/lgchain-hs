@@ -38,7 +38,7 @@ import Database.Persist.TH
     sqlSettings,
   )
 import Lgchain.Core.Histories.ChatMessageHistories (ChatMessageHistory (deleteMessages), SessionId, addMessage, getMessages)
-import Lgchain.Core.Requests (ReqMessage (ReqMessage, content, role))
+import Lgchain.Core.Requests (ReqMessage (ReqMessage, content, role), vpack, vunpack)
 import Text.Read (readMaybe)
 
 share
@@ -58,12 +58,12 @@ migrate' schemaName = runSqlite schemaName (runMigration migrateAll)
 
 fromDomain :: SessionId -> ReqMessage -> ChatHistory
 fromDomain sessionId reqMessage =
-  ChatHistory sessionId (show $ role reqMessage) (T.unpack $ content reqMessage)
+  ChatHistory sessionId (show $ role reqMessage) (vunpack $ content reqMessage)
 
 toDomain :: Entity ChatHistory -> Maybe ReqMessage
 toDomain (Entity _ history) = do
   readRole <- readMaybe (chatHistoryRole history)
-  return $ ReqMessage readRole $ T.pack $ chatHistoryContent history
+  return $ ReqMessage readRole $ vpack $ chatHistoryContent history
 
 saveHistory :: SchemaName -> ChatHistory -> IO (Key ChatHistory)
 saveHistory schemaName history = runSqlite schemaName $ insert history

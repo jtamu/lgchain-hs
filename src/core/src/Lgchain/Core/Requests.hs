@@ -10,6 +10,7 @@ import Data.Aeson.Key (fromText)
 import Data.Aeson.Types (toJSON)
 import Data.List (isPrefixOf)
 import Data.Map qualified as M
+import Data.String (IsString (fromString))
 import Data.Text (Text, pack)
 import Data.Text qualified as T
 import GHC.Generics (Generic)
@@ -25,6 +26,27 @@ import Language.Haskell.TH
   )
 import Language.Haskell.TH.Syntax (Lift)
 import Lgchain.Core.Utils (takeAfterLastDot)
+
+newtype ViewableText = ViewableText Text deriving (Eq, Ord, Generic, FromJSON, ToJSON)
+
+viewable :: Text -> ViewableText
+viewable = ViewableText
+
+unviewable :: ViewableText -> Text
+unviewable (ViewableText s) = s
+
+vpack :: String -> ViewableText
+vpack = ViewableText . pack
+
+vunpack :: ViewableText -> String
+vunpack (ViewableText s) = T.unpack s
+
+instance IsString ViewableText where
+  fromString = vpack
+
+-- StringのデフォルトのShowインスタンス実装をバイパスすることで、Unicodeエスケープを防ぐ
+instance Show ViewableText where
+  show (ViewableText s) = T.unpack $ T.append "\"" $ T.append s "\""
 
 data Role = System | User | Assistant deriving (Eq)
 
@@ -52,7 +74,7 @@ instance FromJSON Role where
     | s == T.pack "assistant" = pure Assistant
   parseJSON _ = fail "invalid role"
 
-data ReqMessage = ReqMessage {role :: Role, content :: T.Text} deriving (Eq, Show, Generic)
+data ReqMessage = ReqMessage {role :: Role, content :: ViewableText} deriving (Eq, Show, Generic)
 
 instance ToJSON ReqMessage
 
@@ -60,10 +82,10 @@ instance FromJSON ReqMessage
 
 type Prompt = [ReqMessage]
 
-type FormatMap = M.Map T.Text T.Text
+type FormatMap = M.Map ViewableText ViewableText
 
-formatAll :: T.Text -> FormatMap -> T.Text
-formatAll = M.foldlWithKey (\acc k v -> T.replace k v acc)
+formatAll :: ViewableText -> FormatMap -> ViewableText
+formatAll = M.foldlWithKey (\acc k v -> viewable $ T.replace (unviewable k) (unviewable v) (unviewable acc))
 
 formatPrompt :: FormatMap -> Prompt -> Prompt
 formatPrompt formatMap prompt = [ReqMessage role (formatAll content formatMap) | ReqMessage role content <- prompt]
@@ -225,8 +247,10 @@ mapSchema (name, typ) = do
 
 foldSchemaProperty :: Type -> Either String JsonSchemaProperty
 foldSchemaProperty (ConT a)
-  | a == ''String =
+  | a == ''ViewableText =
       Right $ JsonSchemaProperty {description = Nothing, propertyType = StringType, items = Nothing, uniqueItems = Nothing}
+foldSchemaProperty (ConT a)
+  | a == ''String = Left "String is not supported. Use ViewableString instead."
 foldSchemaProperty (ConT a)
   | a == ''Int =
       Right $ JsonSchemaProperty {description = Nothing, propertyType = IntType, items = Nothing, uniqueItems = Nothing}

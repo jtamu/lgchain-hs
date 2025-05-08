@@ -10,7 +10,7 @@ import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
 import Data.Text qualified as T
 import Lgchain.Core.Clients (Chain (Chain, StrChain), LLMModel (invokeStr, invokeWithSchema), LgchainError (ParsingError), Output (StrOutput, StructedOutput))
-import Lgchain.Core.Requests (FormatMap, JsonSchemaConvertable (convertJson), ReqMessage (ReqMessage), formatPrompt)
+import Lgchain.Core.Requests (FormatMap, JsonSchemaConvertable (convertJson), ReqMessage (ReqMessage), ViewableText, formatPrompt, unviewable, viewable)
 import Network.HTTP.Simple (getResponseBody, httpJSON, parseRequest_, setRequestBodyJSON, setRequestHeaders, setRequestQueryString)
 import Network.HTTP.Types (hContentType)
 import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), Part (Part), Role (Role), mapCommonSchemaDefinition)
@@ -28,28 +28,28 @@ newtype ChatGemini = ChatGemini {modelName :: GeminiModelName} deriving (Show)
 geminiModelNameStr :: ChatGemini -> String
 geminiModelNameStr (ChatGemini modelName) = show modelName
 
-extractStrOutput :: GenerateContentResponse -> Maybe String
+extractStrOutput :: GenerateContentResponse -> Maybe ViewableText
 extractStrOutput (GenerateContentResponse candidates) =
   let messages = [text part | candidate <- candidates, part <- parts $ Res.content candidate]
    in case messages of
-        (message : _) -> Just $ T.unpack message
+        (message : _) -> Just $ viewable message
         _ -> Nothing
 
 extractStructedOutput :: (JsonSchemaConvertable a) => GenerateContentResponse -> Maybe (Output a)
 extractStructedOutput res = do
   str <- extractStrOutput res
-  decoded <- decode $ LBS.pack $ UTF8.encode str
+  decoded <- decode $ LBS.pack $ UTF8.encode (T.unpack $ unviewable str)
   return $ StructedOutput decoded
 
 buildReqBody :: Chain b a -> Maybe FormatMap -> GenerateContentRequest
 buildReqBody (Chain _ prompt schema) maybeFormat =
   GenerateContentRequest contents (Just $ mapCommonSchemaDefinition $ convertJson schema)
   where
-    contents = [Content (Role role) [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
+    contents = [Content (Role role) [Part $ unviewable content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
 buildReqBody (StrChain _ prompt) maybeFormat =
   GenerateContentRequest contents Nothing
   where
-    contents = [Content (Role role) [Part content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
+    contents = [Content (Role role) [Part $ unviewable content] | ReqMessage role content <- maybe prompt (`formatPrompt` prompt) maybeFormat]
 
 buildOutput :: Chain b a -> GenerateContentResponse -> Either LgchainError (Output a)
 buildOutput (Chain {}) res = case extractStructedOutput res of

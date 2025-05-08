@@ -1,25 +1,27 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Lgchain.Core.Clients where
 
 import Control.Monad.Trans.Except (ExceptT)
-import Lgchain.Core.Requests (FormatMap, JsonSchemaConvertable, Prompt)
+import Lgchain.Core.Requests (FormatMap, JsonSchemaConvertable, Prompt, ViewableText)
 
 data Output a where
-  StrOutput :: String -> Output a
+  StrOutput :: ViewableText -> Output a
   StructedOutput :: (JsonSchemaConvertable a) => a -> Output a
 
 data LgchainError
-  = ApiError String -- API呼び出し時のエラー
-  | ParsingError String -- レスポンスのパース時のエラー
-  | AuthError String -- 認証関連のエラー
-  | ConfigError String -- 設定関連のエラー
-  | OtherError String -- その他のエラー
+  = ApiError ViewableText -- API呼び出し時のエラー
+  | ParsingError ViewableText -- レスポンスのパース時のエラー
+  | AuthError ViewableText -- 認証関連のエラー
+  | ConfigError ViewableText -- 設定関連のエラー
+  | OtherError ViewableText -- その他のエラー
   deriving (Show, Eq)
 
 type ExceptIO = ExceptT LgchainError IO
 
-strOutput :: Output a -> Either LgchainError String
+strOutput :: Output a -> Either LgchainError ViewableText
 strOutput (StrOutput str) = Right str
-strOutput _ = Left $ OtherError "Not string output"
+strOutput _ = Left $ OtherError "Not ViewableText output"
 
 structedOutput :: Output a -> Either LgchainError a
 structedOutput (StructedOutput struct) = Right struct

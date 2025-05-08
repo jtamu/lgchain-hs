@@ -12,7 +12,7 @@ import Data.Map qualified as M
 import Data.Maybe (fromJust)
 import GHC.Generics (Generic)
 import Lgchain.Core.Clients (Chain (Chain, StrChain), strOutput, structedOutput)
-import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), deriveJsonSchema)
+import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), ViewableText, deriveJsonSchema)
 import Requests (GenerateContentRequest)
 import Responses (Candidate (Candidate), GenerateContentResponse (GenerateContentResponse))
 import Responses qualified as Res (Content (Content), Part (Part))
@@ -20,8 +20,8 @@ import Test.Hspec (Spec, context, describe, it, shouldBe)
 import Text.RawString.QQ (r)
 
 data Recipe = Recipe
-  { ingredients :: [String],
-    steps :: [String]
+  { ingredients :: [ViewableText],
+    steps :: [ViewableText]
   }
   deriving (Eq, Show, Generic)
 

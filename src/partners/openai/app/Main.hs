@@ -6,16 +6,15 @@ module Main where
 import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O))
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (ExceptT (ExceptT), runExceptT)
-import Data.Text qualified as T
 import GHC.Generics (Generic)
 import Lgchain.Core.Clients (Chain (StrChain), invoke, strOutput)
 import Lgchain.Core.Histories.ChatMessageHistories (ChatMessageHistory (addMessage, deleteMessages), getMessages)
 import Lgchain.Core.Histories.ChatMessageHistories.RDB (SqliteChatMessageHistory (SqliteChatMessageHistory), migrate)
-import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (Assistant, System, User), deriveJsonSchema)
+import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (Assistant, System, User), ViewableText, deriveJsonSchema)
 
 data Recipe = Recipe
-  { ingredients :: [String],
-    steps :: [String]
+  { ingredients :: [ViewableText],
+    steps :: [ViewableText]
   }
   deriving (Eq, Show, Generic)
 
@@ -23,8 +22,8 @@ deriveJsonSchema ''Recipe
 
 sampleHistories :: [ReqMessage]
 sampleHistories =
-  [ ReqMessage User "My name is Tom.",
-    ReqMessage Assistant "Hello Tom."
+  [ ReqMessage User "私の名前はトムです",
+    ReqMessage Assistant "こんにちは、トムさん！"
   ]
 
 sampleHistory :: SqliteChatMessageHistory
@@ -40,7 +39,7 @@ main = do
 
     -- LLM呼び出し
     messages <- liftIO $ getMessages sampleHistory
-    let userMessage = ReqMessage User "Do you understand my name?"
+    let userMessage = ReqMessage User "私の名前を覚えていますか？"
     let prompt =
           [ReqMessage System "You are a helpful assistant."]
             ++ messages
@@ -52,7 +51,7 @@ main = do
     result <- invoke chain Nothing
     res <- ExceptT $ return $ strOutput result
     liftIO $ addMessage sampleHistory userMessage
-    liftIO $ addMessage sampleHistory . ReqMessage Assistant . T.pack $ res
+    liftIO $ addMessage sampleHistory . ReqMessage Assistant $ res
     liftIO $ getMessages sampleHistory
 
   either print print reqMessages

@@ -10,7 +10,7 @@ import Data.Aeson (decode)
 import Data.ByteString.Char8 qualified as BS
 import Data.ByteString.Lazy qualified as LBS
 import Lgchain.Core.Clients (Chain (Chain, StrChain), ExceptIO, LLMModel (invokeStr, invokeWithSchema), LgchainError (ParsingError), Output (StrOutput, StructedOutput))
-import Lgchain.Core.Requests (FormatMap, FormatType (JsonFormat), JsonSchemaConvertable (convertJson), ReqBody (ReqBody), ResponseFormat (ResponseFormat), formatPrompt)
+import Lgchain.Core.Requests (FormatMap, FormatType (JsonFormat), JsonSchemaConvertable (convertJson), ReqBody (ReqBody), ResponseFormat (ResponseFormat), ViewableText, formatPrompt, vpack, vunpack)
 import Network.HTTP.Conduit (parseRequest_)
 import Network.HTTP.Simple (getResponseBody, httpJSON, setRequestBodyJSON, setRequestHeaders)
 import Network.HTTP.Types (hAuthorization, hContentType)
@@ -28,15 +28,15 @@ newtype ChatOpenAI = ChatOpenAI {modelName :: OpenAIModelName} deriving (Show)
 openAIModelNameStr :: ChatOpenAI -> String
 openAIModelNameStr (ChatOpenAI modelName) = show modelName
 
-extractStrOutput :: ResBody -> Maybe String
+extractStrOutput :: ResBody -> Maybe ViewableText
 extractStrOutput resBody = case choices resBody of
-  (ResMessage message : _) -> Just $ content message
+  (ResMessage message : _) -> Just $ vpack $ content message
   _ -> Nothing
 
 extractStructedOutput :: (JsonSchemaConvertable a) => ResBody -> Maybe (Output a)
 extractStructedOutput res = do
   str <- extractStrOutput res
-  decoded <- decode $ LBS.pack $ UTF8.encode str
+  decoded <- decode $ LBS.pack $ UTF8.encode (vunpack str)
   return $ StructedOutput decoded
 
 buildOutput :: Chain ChatOpenAI a -> ResBody -> Either LgchainError (Output a)
