@@ -16,6 +16,7 @@ instance FromJSON Part
 
 instance ToJSON Part
 
+-- | コンテンツ型
 data Content = Content
   { parts :: [Part],
     role :: Text
@@ -26,6 +27,7 @@ instance FromJSON Content
 
 instance ToJSON Content
 
+-- | 候補型
 newtype Candidate = Candidate
   { content :: Content
   }
@@ -35,6 +37,7 @@ instance FromJSON Candidate
 
 instance ToJSON Candidate
 
+-- | レスポンスのメインデータ型
 newtype GenerateContentResponse = GenerateContentResponse
   { candidates :: [Candidate]
   }
