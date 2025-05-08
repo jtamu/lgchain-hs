@@ -6,6 +6,7 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
+-- | パート型
 newtype Part = Part
   { text :: Text
   }
