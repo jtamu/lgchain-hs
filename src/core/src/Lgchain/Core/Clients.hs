@@ -2,6 +2,7 @@
 
 module Lgchain.Core.Clients where
 
+import Control.Monad.Except (runExceptT)
 import Control.Monad.Trans.Except (ExceptT)
 import Lgchain.Core.Requests (FormatMap, JsonSchemaConvertable, Prompt, ViewableText)
 
@@ -42,3 +43,10 @@ data Chain b a where
 invoke :: Chain b a -> Maybe FormatMap -> ExceptIO (Output a)
 invoke (Chain model prompt struct) formatMap = invokeWithSchema model prompt struct formatMap
 invoke (StrChain model prompt) formatMap = invokeStr model prompt formatMap
+
+runOrFail :: ExceptIO () -> IO ()
+runOrFail action = do
+  result <- runExceptT action
+  case result of
+    Left err -> putStrLn $ "Error: " ++ show err
+    Right _ -> return ()

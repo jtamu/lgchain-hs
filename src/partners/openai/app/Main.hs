@@ -5,9 +5,9 @@ module Main where
 
 import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O))
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except (ExceptT (ExceptT), runExceptT)
+import Control.Monad.Trans.Except (ExceptT (ExceptT))
 import GHC.Generics (Generic)
-import Lgchain.Core.Clients (Chain (StrChain), invoke, strOutput)
+import Lgchain.Core.Clients (Chain (StrChain), invoke, runOrFail, strOutput)
 import Lgchain.Core.Histories.ChatMessageHistories (ChatMessageHistory (addMessage, deleteMessages), getMessages)
 import Lgchain.Core.Histories.ChatMessageHistories.RDB (SqliteChatMessageHistory (SqliteChatMessageHistory), migrate)
 import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (Assistant, System, User), ViewableText, deriveJsonSchema)
@@ -30,28 +30,26 @@ sampleHistory :: SqliteChatMessageHistory
 sampleHistory = SqliteChatMessageHistory "database.db" "2"
 
 main :: IO ()
-main = do
-  reqMessages <- runExceptT $ do
-    -- 履歴初期化
-    liftIO $ migrate sampleHistory
-    liftIO $ deleteMessages sampleHistory
-    liftIO $ mapM_ (addMessage sampleHistory) sampleHistories
+main = runOrFail $ do
+  -- 履歴初期化
+  liftIO $ migrate sampleHistory
+  liftIO $ deleteMessages sampleHistory
+  liftIO $ mapM_ (addMessage sampleHistory) sampleHistories
 
-    -- LLM呼び出し
-    messages <- liftIO $ getMessages sampleHistory
-    let userMessage = ReqMessage User "私の名前を覚えていますか？"
-    let prompt =
-          [ReqMessage System "You are a helpful assistant."]
-            ++ messages
-            ++ [userMessage]
-    let model = ChatOpenAI GPT4O
-    let chain = StrChain model prompt
+  -- LLM呼び出し
+  messages <- liftIO $ getMessages sampleHistory
+  let userMessage = ReqMessage User "私の名前を覚えていますか？"
+  let prompt =
+        [ReqMessage System "You are a helpful assistant."]
+          ++ messages
+          ++ [userMessage]
+  let model = ChatOpenAI GPT4O
+  let chain = StrChain model prompt
 
-    -- 履歴保存
-    result <- invoke chain Nothing
-    res <- ExceptT $ return $ strOutput result
-    liftIO $ addMessage sampleHistory userMessage
-    liftIO $ addMessage sampleHistory . ReqMessage Assistant $ res
-    liftIO $ getMessages sampleHistory
-
-  either print print reqMessages
+  -- 履歴保存
+  result <- invoke chain Nothing
+  res <- ExceptT $ return $ strOutput result
+  liftIO $ addMessage sampleHistory userMessage
+  liftIO $ addMessage sampleHistory . ReqMessage Assistant $ res
+  finalMessages <- liftIO $ getMessages sampleHistory
+  liftIO $ print finalMessages
