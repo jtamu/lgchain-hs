@@ -24,6 +24,7 @@ import Lgchain.Core.Requests qualified as Core (JsonSchema (properties), JsonSch
 newtype Role = Role Core.Role
 
 instance Eq Role where
+  -- System と User はgeminiにおいては等価なものとして扱う (Systemは存在しないため)
   (==) (Role Core.System) (Role Core.User) = True
   (==) (Role Core.User) (Role Core.System) = True
   (==) (Role a) (Role b) = a == b
@@ -44,6 +45,7 @@ instance ToJSON Role where
   toJSON (Role Core.User) = String "user"
   toJSON (Role Core.Assistant) = String "assistant"
 
+-- | パート型
 newtype Part = Part
   { text :: Text
   }
@@ -53,6 +55,7 @@ instance FromJSON Part
 
 instance ToJSON Part
 
+-- | コンテンツ型
 data Content = Content
   { role :: Role,
     parts :: [Part]
@@ -63,6 +66,7 @@ instance FromJSON Content
 
 instance ToJSON Content
 
+-- | スキーマアイテム型
 data PropertyType = IntType | StringType | DoubleType | BooleanType | ListType | ObjectType deriving (Eq, Show, Lift)
 
 instance ToJSON PropertyType where
@@ -99,6 +103,7 @@ instance ToJSON SchemaItems where
   toJSON (SchemaItems itemsType properties items required) =
     object $ ["type" .= itemsType, "properties" .= properties, "required" .= required] ++ maybe [] (\x -> ["items" .= x]) items
 
+-- | 生成設定型
 data GenerationConfig = GenerationConfig
   { responseMimeType :: Text,
     responseSchema :: SchemaItems
@@ -114,6 +119,7 @@ instance ToJSON GenerationConfig where
   toJSON (GenerationConfig responseMimeType responseSchema) =
     object ["response_mime_type" .= responseMimeType, "response_schema" .= responseSchema]
 
+-- | リクエストのメインデータ型
 data GenerateContentRequest = GenerateContentRequest
   { contents :: [Content],
     generationConfig :: Maybe GenerationConfig
@@ -124,6 +130,7 @@ instance FromJSON GenerateContentRequest
 
 instance ToJSON GenerateContentRequest
 
+-- | 共通のスキーマ定義をgemini用に変換する
 mapCommonSchemaDefinition :: Core.JsonSchemaDefinition -> GenerationConfig
 mapCommonSchemaDefinition (Core.JsonSchemaDefinition _ schema) =
   let itemsMap = M.map mapCommonSchemaProperty (Core.properties schema)
