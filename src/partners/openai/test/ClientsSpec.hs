@@ -4,7 +4,7 @@
 
 module ClientsSpec where
 
-import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O), buildOutput, buildReqBody)
+import Lgchain.OpenAI.Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O), buildOutput, buildReqBody)
 import Codec.Binary.UTF8.String qualified as UTF8
 import Data.Aeson (decode)
 import Data.ByteString.Lazy qualified as BS
@@ -13,7 +13,7 @@ import Data.Maybe (fromJust)
 import GHC.Generics (Generic)
 import Lgchain.Core.Clients (Chain (Chain, StrChain), strOutput, structedOutput)
 import Lgchain.Core.Requests (ReqBody, ReqMessage (ReqMessage), Role (System, User), ViewableText, deriveJsonSchema)
-import Responses (ResBody (ResBody, choices), ResMessage (ResMessage), ResMessageContent (ResMessageContent))
+import Lgchain.OpenAI.Responses (ResBody (ResBody, choices), ResMessage (ResMessage), ResMessageContent (ResMessageContent))
 import Test.Hspec (Spec, context, describe, it, shouldBe)
 import Text.RawString.QQ (r)
 

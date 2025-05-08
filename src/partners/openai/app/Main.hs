@@ -3,7 +3,7 @@
 
 module Main where
 
-import Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O))
+import Lgchain.OpenAI.Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O))
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (ExceptT (ExceptT))
 import GHC.Generics (Generic)

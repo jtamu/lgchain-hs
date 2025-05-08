@@ -4,7 +4,7 @@
 
 module ClientsSpec where
 
-import Clients (ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH), buildOutput, buildReqBody)
+import Lgchain.Gemini.Clients (ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH), buildOutput, buildReqBody)
 import Codec.Binary.UTF8.String qualified as UTF8
 import Data.Aeson (decode)
 import Data.ByteString.Lazy qualified as BS
@@ -13,9 +13,9 @@ import Data.Maybe (fromJust)
 import GHC.Generics (Generic)
 import Lgchain.Core.Clients (Chain (Chain, StrChain), strOutput, structedOutput)
 import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), ViewableText, deriveJsonSchema)
-import Requests (GenerateContentRequest)
-import Responses (Candidate (Candidate), GenerateContentResponse (GenerateContentResponse))
-import Responses qualified as Res (Content (Content), Part (Part))
+import Lgchain.Gemini.Requests (GenerateContentRequest)
+import Lgchain.Gemini.Responses (Candidate (Candidate), GenerateContentResponse (GenerateContentResponse))
+import Lgchain.Gemini.Responses qualified as Res (Content (Content), Part (Part))
 import Test.Hspec (Spec, context, describe, it, shouldBe)
 import Text.RawString.QQ (r)
 
