@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Clients where
+module Lgchain.OpenAI.Clients where
 
 import Codec.Binary.UTF8.String qualified as UTF8
 import Control.Monad.IO.Class (liftIO)
@@ -14,7 +14,7 @@ import Lgchain.Core.Requests (FormatMap, FormatType (JsonFormat), JsonSchemaConv
 import Network.HTTP.Conduit (parseRequest_)
 import Network.HTTP.Simple (getResponseBody, httpJSON, setRequestBodyJSON, setRequestHeaders)
 import Network.HTTP.Types (hAuthorization, hContentType)
-import Responses (ResBody (choices), ResMessage (ResMessage), ResMessageContent (content))
+import Lgchain.OpenAI.Responses (ResBody (choices), ResMessage (ResMessage), ResMessageContent (content))
 import System.Environment (getEnv)
 
 data OpenAIModelName = GPT4O | GPT3_5Turbo

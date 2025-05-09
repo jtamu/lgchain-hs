@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module Responses where
+module Lgchain.Gemini.Responses where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Text (Text)

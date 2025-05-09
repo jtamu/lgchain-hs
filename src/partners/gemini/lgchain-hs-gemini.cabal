@@ -63,11 +63,11 @@ library
   -- Modules exported by the library.
   -- cabal-fmt: expand src -Main
   exposed-modules:
-    Clients
+    Lgchain.Gemini.Clients
+    Lgchain.Gemini.Requests
+    Lgchain.Gemini.Responses
+    Lgchain.Gemini.Utils
     MyLib
-    Requests
-    Responses
-    Utils
 
   -- Modules included in this library but not exported.
   -- other-modules:

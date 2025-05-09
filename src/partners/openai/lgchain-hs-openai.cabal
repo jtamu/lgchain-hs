@@ -63,9 +63,9 @@ library
   -- Modules exported by the library.
   -- cabal-fmt: expand app -Main
   exposed-modules:
-    Clients
-    Responses
-    Utils
+    Lgchain.OpenAI.Clients
+    Lgchain.OpenAI.Responses
+    Lgchain.OpenAI.Utils
 
   -- LANGUAGE extensions used by modules in this package.
   other-extensions: TemplateHaskell
@@ -102,9 +102,9 @@ executable lgchain-hs-openai
   -- Modules included in this executable, other than Main.
   -- cabal-fmt: expand app -Main
   other-modules:
-    Clients
-    Responses
-    Utils
+    Lgchain.OpenAI.Clients
+    Lgchain.OpenAI.Responses
+    Lgchain.OpenAI.Utils
 
   -- LANGUAGE extensions used by modules in this package.
   other-extensions: TemplateHaskell

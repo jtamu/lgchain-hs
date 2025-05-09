@@ -1,4 +1,4 @@
-module Responses where
+module Lgchain.OpenAI.Responses where
 
 import Data.Aeson (FromJSON)
 import GHC.Generics (Generic)
