@@ -67,6 +67,7 @@ library
     Lgchain.Gemini.Requests
     Lgchain.Gemini.Responses
     Lgchain.Gemini.Utils
+    MyLib
 
   -- Modules included in this library but not exported.
   -- other-modules:

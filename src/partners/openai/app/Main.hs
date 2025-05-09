@@ -3,7 +3,6 @@
 
 module Main where
 
-import Lgchain.OpenAI.Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O))
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (ExceptT (ExceptT))
 import GHC.Generics (Generic)
@@ -11,6 +10,7 @@ import Lgchain.Core.Clients (Chain (StrChain), invoke, runOrFail, strOutput)
 import Lgchain.Core.Histories.ChatMessageHistories (ChatMessageHistory (addMessage, deleteMessages), getMessages)
 import Lgchain.Core.Histories.ChatMessageHistories.RDB (SqliteChatMessageHistory (SqliteChatMessageHistory), migrate)
 import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (Assistant, System, User), ViewableText, deriveJsonSchema)
+import Lgchain.OpenAI.Clients (ChatOpenAI (ChatOpenAI), OpenAIModelName (GPT4O))
 
 data Recipe = Recipe
   { ingredients :: [ViewableText],
