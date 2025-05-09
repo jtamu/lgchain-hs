@@ -62,7 +62,7 @@ import Control.Monad.Trans.Except (ExceptT(ExceptT))
 import Data.Map qualified as M
 
 -- OpenAIの場合
-import Clients (ChatOpenAI(ChatOpenAI), OpenAIModelName(GPT4O))
+import Lgchain.OpenAI.Clients (ChatOpenAI(ChatOpenAI), OpenAIModelName(GPT4O))
 
 main :: IO ()
 main = runOrFail $ do
@@ -72,7 +72,7 @@ main = runOrFail $ do
       ]
   let model = ChatOpenAI GPT4O
   let chain = StrChain model prompt
-  
+
   result <- invoke chain Nothing
   response <- ExceptT $ return $ strOutput result
   liftIO $ putStrLn response
@@ -91,7 +91,7 @@ import Data.Map qualified as M
 import GHC.Generics (Generic)
 
 -- Geminiの場合
-import Clients (ChatGemini(ChatGemini), GeminiModelName(GEMINI_1_5_FLASH))
+import Lgchain.Gemini.Clients (ChatGemini(ChatGemini), GeminiModelName(GEMINI_1_5_FLASH))
 
 -- 構造化データの定義
 data Recipe = Recipe
@@ -112,7 +112,7 @@ main = runOrFail $ do
   let model = ChatGemini GEMINI_1_5_FLASH
   let chain = Chain model prompt (undefined :: Recipe)
   let formatMap = M.fromList [("{dish}", "カレー")]
-  
+
   result <- invoke chain (Just formatMap)
   recipe <- ExceptT $ return $ structedOutput result
   liftIO $ print recipe
@@ -131,32 +131,32 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (ExceptT(ExceptT))
 
 -- OpenAIの場合
-import Clients (ChatOpenAI(ChatOpenAI), OpenAIModelName(GPT4O))
+import Lgchain.OpenAI.Clients (ChatOpenAI(ChatOpenAI), OpenAIModelName(GPT4O))
 
 main :: IO ()
 main = runOrFail $ do
   -- 履歴の初期化
   let history = SqliteChatMessageHistory "database.db" "session1"
   liftIO $ migrate history
-  
+
   -- 履歴へのメッセージ追加
   liftIO $ addMessage history (ReqMessage User "こんにちは")
   liftIO $ addMessage history (ReqMessage Assistant "こんにちは！どのようにお手伝いできますか？")
-  
+
   -- 履歴の取得と利用
   messages <- liftIO $ getMessages history
   let userMessage = ReqMessage User "Haskellについて教えてください"
   let prompt = [ReqMessage System "You are a helpful assistant."] ++ messages ++ [userMessage]
-  
+
   let model = ChatOpenAI GPT4O
   let chain = StrChain model prompt
-  
+
   -- LLM呼び出しと履歴更新
   result <- invoke chain Nothing
   response <- ExceptT $ return $ strOutput result
   liftIO $ addMessage history userMessage
   liftIO $ addMessage history (ReqMessage Assistant response)
-  
+
   -- 最終的な履歴の表示
   finalMessages <- liftIO $ getMessages history
   liftIO $ print finalMessages
@@ -181,7 +181,7 @@ import GHC.Generics (Generic)
 import Text.RawString.QQ (r)
 
 -- Geminiの場合
-import Clients (ChatGemini(ChatGemini), GeminiModelName(GEMINI_1_5_FLASH))
+import Lgchain.Gemini.Clients (ChatGemini(ChatGemini), GeminiModelName(GEMINI_1_5_FLASH))
 
 -- エージェントの状態定義
 data ExampleState = ExampleState
@@ -227,7 +227,7 @@ exampleWorkflow :: ExampleState -> ExceptIO ExampleState
 exampleWorkflow state = do
   let selectionNode = SelectionNode
   let answeringNode = AnsweringNode
-  
+
   -- ノードの連鎖実行
   finalState <- run selectionNode state >>= run answeringNode
   return finalState
