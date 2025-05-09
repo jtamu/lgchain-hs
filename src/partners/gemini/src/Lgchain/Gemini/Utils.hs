@@ -1,4 +1,4 @@
-module Utils where
+module Lgchain.Gemini.Utils where
 
 import Data.List.Split (splitOn)
 

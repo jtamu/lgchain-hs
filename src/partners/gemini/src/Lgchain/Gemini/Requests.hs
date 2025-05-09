@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Requests where
+module Lgchain.Gemini.Requests where
 
 import Data.Aeson
   ( FromJSON (parseJSON),

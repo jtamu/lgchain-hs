@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Clients where
+module Lgchain.Gemini.Clients where
 
 import Codec.Binary.UTF8.String qualified as UTF8
 import Control.Monad.IO.Class (MonadIO (liftIO))
@@ -13,9 +13,9 @@ import Lgchain.Core.Clients (Chain (Chain, StrChain), LLMModel (invokeStr, invok
 import Lgchain.Core.Requests (FormatMap, JsonSchemaConvertable (convertJson), ReqMessage (ReqMessage), ViewableText, formatPrompt, unviewable, viewable)
 import Network.HTTP.Simple (getResponseBody, httpJSON, parseRequest_, setRequestBodyJSON, setRequestHeaders, setRequestQueryString)
 import Network.HTTP.Types (hContentType)
-import Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), Part (Part), Role (Role), mapCommonSchemaDefinition)
-import Responses (Content (parts), GenerateContentResponse (GenerateContentResponse), Part (text))
-import Responses qualified as Res (Candidate (content))
+import Lgchain.Gemini.Requests (Content (Content), GenerateContentRequest (GenerateContentRequest), Part (Part), Role (Role), mapCommonSchemaDefinition)
+import Lgchain.Gemini.Responses (Content (parts), GenerateContentResponse (GenerateContentResponse), Part (text))
+import Lgchain.Gemini.Responses qualified as Res (Candidate (content))
 import System.Environment (getEnv)
 
 data GeminiModelName = GEMINI_1_5_FLASH

@@ -4,7 +4,6 @@
 
 module MyLib where
 
-import Clients (ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH))
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Control.Monad.Trans.Except (ExceptT (ExceptT))
 import Data.List (isPrefixOf)
@@ -14,6 +13,7 @@ import GHC.Generics (Generic)
 import Lgchain.Core.Agents (AgentNode (run))
 import Lgchain.Core.Clients (Chain (Chain, StrChain), ExceptIO, invoke, runOrFail, strOutput, structedOutput)
 import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), ViewableText, deriveJsonSchema, vunpack)
+import Lgchain.Gemini.Clients (ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH))
 import Text.RawString.QQ (r)
 
 data ExampleState = ExampleState

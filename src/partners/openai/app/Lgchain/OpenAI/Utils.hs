@@ -1,4 +1,4 @@
-module Utils where
+module Lgchain.OpenAI.Utils where
 
 import Data.List.Split (splitOn)
 
