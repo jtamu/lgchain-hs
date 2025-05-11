@@ -17,4 +17,14 @@ RUN cabal install cabal-fmt implicit-hie
 WORKDIR ${APP_DIR}/src
 COPY ./src/ .
 
+# install nodejs
+ENV NVM_DIR /root/.nvm
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash \
+    && . "$NVM_DIR/nvm.sh" \
+    && nvm install 22 \
+    && nvm use 22 \
+    && nvm alias default 22 \
+    # install mcp servers
+    && npx -y @smithery/cli install obsidian-mcp || true
+
 ENTRYPOINT ["/bin/bash"]

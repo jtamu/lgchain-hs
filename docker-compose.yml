@@ -5,6 +5,7 @@ services:
     build: .
     volumes:
       - ./src:/opt/app/src
+      - ${OBSIDIAN_ROOT}:/opt/app/docs/obsidian
     env_file:
       - .env
     tty: true
