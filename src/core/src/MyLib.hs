@@ -3,113 +3,111 @@
 module MyLib (someFunc) where
 
 import Control.Concurrent (threadDelay)
-import Data.Aeson (Value, encode, object, (.=))
+import Data.Aeson (encode, object, (.=))
 import Data.ByteString.Lazy.Char8 (hPutStrLn)
 import Data.Maybe (fromJust)
 import GHC.IO.Handle (hFlush, hGetLine)
+import Lgchain.Core.MCP.Clients.Requests (Notification (Notification), Request (Request))
 import System.Process (StdStream (CreatePipe), proc, std_in, std_out, withCreateProcess)
 
 -- ping
 
-ping :: Value
-ping = object ["jsonrpc" .= ("2.0" :: String), "method" .= ("ping" :: String), "id" .= (1 :: Int)]
+ping :: Request
+ping = Request "2.0" "ping" "1" Nothing
 
 -- initialize
 
-initialize :: Value
+initialize :: Request
 initialize =
-  object
-    [ "jsonrpc" .= ("2.0" :: String),
-      "method" .= ("initialize" :: String),
-      "id" .= (1 :: Int),
-      "params"
-        .= object
-          [ "processId" .= (1 :: Int),
-            "clientInfo"
-              .= object
-                [ "name" .= ("obsidian-mcp" :: String),
-                  "version" .= ("0.1.0" :: String)
-                ],
-            "rootUri" .= ("file:///opt/app/docs/obsidian" :: String),
-            "protocolVersion" .= ("2025-03-26" :: String),
-            "capabilities" .= object []
-          ]
-    ]
+  Request
+    "2.0"
+    "initialize"
+    "1"
+    ( Just
+        ( object
+            [ "jsonrpc" .= ("2.0" :: String),
+              "method" .= ("initialize" :: String),
+              "id" .= (1 :: Int),
+              "params"
+                .= object
+                  [ "processId" .= (1 :: Int),
+                    "clientInfo"
+                      .= object
+                        [ "name" .= ("obsidian-mcp" :: String),
+                          "version" .= ("0.1.0" :: String)
+                        ],
+                    "rootUri" .= ("file:///opt/app/docs/obsidian" :: String),
+                    "protocolVersion" .= ("2025-03-26" :: String),
+                    "capabilities" .= object []
+                  ]
+            ]
+        )
+    )
 
-initialized :: Value
-initialized =
-  object
-    [ "jsonrpc" .= ("2.0" :: String),
-      "method" .= ("notifications/initialized" :: String)
-    ]
+initialized :: Notification
+initialized = Notification "2.0" "notifications/initialized"
 
 -- prompts
 
-listPrompts :: Value
+listPrompts :: Request
 listPrompts =
-  object
-    [ "jsonrpc" .= ("2.0" :: String),
-      "method" .= ("prompts/list" :: String),
-      "id" .= (1 :: Int),
-      "params" .= object []
-    ]
+  Request
+    "2.0"
+    "prompts/list"
+    "1"
+    Nothing
 
-getPrompt :: Value
+getPrompt :: Request
 getPrompt =
-  object
-    [ "jsonrpc" .= ("2.0" :: String),
-      "method" .= ("prompts/get" :: String),
-      "id" .= (1 :: Int),
-      "params" .= object ["name" .= ("list-vaults" :: String)]
-    ]
+  Request
+    "2.0"
+    "prompts/get"
+    "1"
+    (Just (object ["name" .= ("list-vaults" :: String)]))
 
 -- resources
 
-listResources :: Value
+listResources :: Request
 listResources =
-  object
-    [ "jsonrpc" .= ("2.0" :: String),
-      "method" .= ("resources/list" :: String),
-      "id" .= (1 :: Int),
-      "params" .= object []
-    ]
+  Request
+    "2.0"
+    "resources/list"
+    "1"
+    Nothing
 
-readResource :: Value
+readResource :: Request
 readResource =
-  object
-    [ "jsonrpc" .= ("2.0" :: String),
-      "method" .= ("resources/read" :: String),
-      "id" .= (1 :: Int),
-      "params" .= object ["uri" .= ("obsidian-vault://obsidian" :: String)]
-    ]
+  Request
+    "2.0"
+    "resources/read"
+    "1"
+    (Just (object ["uri" .= ("obsidian-vault://obsidian" :: String)]))
 
--- tools
-
-listTools :: Value
+listTools :: Request
 listTools =
-  object
-    [ "jsonrpc" .= ("2.0" :: String),
-      "method" .= ("tools/list" :: String),
-      "id" .= (1 :: Int),
-      "params" .= object []
-    ]
+  Request
+    "2.0"
+    "tools/list"
+    "1"
+    Nothing
 
-readNote :: Value
+readNote :: Request
 readNote =
-  object
-    [ "jsonrpc" .= ("2.0" :: String),
-      "method" .= ("tools/call" :: String),
-      "id" .= (1 :: Int),
-      "params"
-        .= object
-          [ "name" .= ("read-note" :: String),
-            "arguments"
-              .= object
-                [ "vault" .= ("obsidian" :: String),
-                  "filename" .= ("lgchain-hs.md" :: String)
-                ]
-          ]
-    ]
+  Request
+    "2.0"
+    "tools/call"
+    "1"
+    ( Just
+        ( object
+            [ "name" .= ("read-note" :: String),
+              "arguments"
+                .= object
+                  [ "vault" .= ("obsidian" :: String),
+                    "filename" .= ("lgchain-hs.md" :: String)
+                  ]
+            ]
+        )
+    )
 
 someFunc :: IO ()
 someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/obsidian"]) {std_in = CreatePipe, std_out = CreatePipe} $
