@@ -31,7 +31,7 @@ initialize =
                   "version" .= ("0.1.0" :: String)
                 ],
             "rootUri" .= ("file:///opt/app/docs/obsidian" :: String),
-            "protocolVersion" .= ("0.1.0" :: String),
+            "protocolVersion" .= ("2025-03-26" :: String),
             "capabilities" .= object []
           ]
     ]
@@ -61,6 +61,54 @@ getPrompt =
       "method" .= ("prompts/get" :: String),
       "id" .= (1 :: Int),
       "params" .= object ["name" .= ("list-vaults" :: String)]
+    ]
+
+-- resources
+
+listResources :: Value
+listResources =
+  object
+    [ "jsonrpc" .= ("2.0" :: String),
+      "method" .= ("resources/list" :: String),
+      "id" .= (1 :: Int),
+      "params" .= object []
+    ]
+
+readResource :: Value
+readResource =
+  object
+    [ "jsonrpc" .= ("2.0" :: String),
+      "method" .= ("resources/read" :: String),
+      "id" .= (1 :: Int),
+      "params" .= object ["uri" .= ("obsidian-vault://obsidian" :: String)]
+    ]
+
+-- tools
+
+listTools :: Value
+listTools =
+  object
+    [ "jsonrpc" .= ("2.0" :: String),
+      "method" .= ("tools/list" :: String),
+      "id" .= (1 :: Int),
+      "params" .= object []
+    ]
+
+readNote :: Value
+readNote =
+  object
+    [ "jsonrpc" .= ("2.0" :: String),
+      "method" .= ("tools/call" :: String),
+      "id" .= (1 :: Int),
+      "params"
+        .= object
+          [ "name" .= ("read-note" :: String),
+            "arguments"
+              .= object
+                [ "vault" .= ("obsidian" :: String),
+                  "filename" .= ("lgchain-hs.md" :: String)
+                ]
+          ]
     ]
 
 someFunc :: IO ()
@@ -100,3 +148,31 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     response4 <- hGetLine hout
     putStrLn $ "Request getPrompt: " ++ show getPrompt
     putStrLn $ "Response getPrompt: " ++ response4
+
+    threadDelay 1000000 -- 1秒待機
+    hPutStrLn hin (encode listResources)
+    hFlush hin
+    response5 <- hGetLine hout
+    putStrLn $ "Request resourceList: " ++ show listResources
+    putStrLn $ "Response resourceList: " ++ response5
+
+    threadDelay 1000000 -- 1秒待機
+    hPutStrLn hin (encode readResource)
+    hFlush hin
+    response6 <- hGetLine hout
+    putStrLn $ "Request readResource: " ++ show readResource
+    putStrLn $ "Response readResource: " ++ response6
+
+    threadDelay 1000000 -- 1秒待機
+    hPutStrLn hin (encode listTools)
+    hFlush hin
+    response7 <- hGetLine hout
+    putStrLn $ "Request listTools: " ++ show listTools
+    putStrLn $ "Response listTools: " ++ response7
+
+    threadDelay 1000000 -- 1秒待機
+    hPutStrLn hin (encode readNote)
+    hFlush hin
+    response8 <- hGetLine hout
+    putStrLn $ "Request readNote: " ++ show readNote
+    putStrLn $ "Response readNote: " ++ response8
