@@ -3,11 +3,14 @@
 module MyLib (someFunc) where
 
 import Control.Concurrent (threadDelay)
-import Data.Aeson (encode, object, (.=))
+import Data.Aeson (decode, encode, object, (.=))
+import Data.Aeson.Types (Object)
 import Data.ByteString.Lazy.Char8 (hPutStrLn)
+import Data.ByteString.Lazy.UTF8 qualified as BU
 import Data.Maybe (fromJust)
 import GHC.IO.Handle (hFlush, hGetLine)
 import Lgchain.Core.MCP.Clients.Requests (Notification (Notification), Request (Request))
+import Lgchain.Core.MCP.Clients.Responses (Response)
 import System.Process (StdStream (CreatePipe), proc, std_in, std_out, withCreateProcess)
 
 -- ping
@@ -25,21 +28,15 @@ initialize =
     "1"
     ( Just
         ( object
-            [ "jsonrpc" .= ("2.0" :: String),
-              "method" .= ("initialize" :: String),
-              "id" .= (1 :: Int),
-              "params"
+            [ "processId" .= (1 :: Int),
+              "clientInfo"
                 .= object
-                  [ "processId" .= (1 :: Int),
-                    "clientInfo"
-                      .= object
-                        [ "name" .= ("obsidian-mcp" :: String),
-                          "version" .= ("0.1.0" :: String)
-                        ],
-                    "rootUri" .= ("file:///opt/app/docs/obsidian" :: String),
-                    "protocolVersion" .= ("2025-03-26" :: String),
-                    "capabilities" .= object []
-                  ]
+                  [ "name" .= ("obsidian-mcp" :: String),
+                    "version" .= ("0.1.0" :: String)
+                  ],
+              "rootUri" .= ("file:///opt/app/docs/obsidian" :: String),
+              "protocolVersion" .= ("2025-03-26" :: String),
+              "capabilities" .= object []
             ]
         )
     )
@@ -118,15 +115,17 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     hPutStrLn hin (encode ping)
     hFlush hin
     response1 <- hGetLine hout
+    let responseJson1 = decode $ BU.fromString response1 :: Maybe Response
     putStrLn $ "Request ping: " ++ show ping
-    putStrLn $ "Response ping: " ++ response1
+    putStrLn $ "Response ping: " ++ show responseJson1
 
     threadDelay 1000000 -- 1秒待機
     hPutStrLn hin (encode initialize)
     hFlush hin
     response2 <- hGetLine hout
+    let responseJson2 = decode $ BU.fromString response2 :: Maybe Response
     putStrLn $ "Request initialize: " ++ show initialize
-    putStrLn $ "Response initialize: " ++ response2
+    putStrLn $ "Response initialize: " ++ show responseJson2
 
     threadDelay 1000000 -- 1秒待機
     hPutStrLn hin (encode initialized) -- initializedにはレスポンスが来ない
@@ -137,40 +136,46 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     hPutStrLn hin (encode listPrompts)
     hFlush hin
     response3 <- hGetLine hout
+    let responseJson3 = decode $ BU.fromString response3 :: Maybe Response
     putStrLn $ "Request listPrompts: " ++ show listPrompts
-    putStrLn $ "Response listPrompts: " ++ response3
+    putStrLn $ "Response listPrompts: " ++ show responseJson3
 
     threadDelay 1000000 -- 1秒待機
     hPutStrLn hin (encode getPrompt)
     hFlush hin
     response4 <- hGetLine hout
+    let responseJson4 = decode $ BU.fromString response4 :: Maybe Response
     putStrLn $ "Request getPrompt: " ++ show getPrompt
-    putStrLn $ "Response getPrompt: " ++ response4
+    putStrLn $ "Response getPrompt: " ++ show responseJson4
 
     threadDelay 1000000 -- 1秒待機
     hPutStrLn hin (encode listResources)
     hFlush hin
     response5 <- hGetLine hout
+    let responseJson5 = decode $ BU.fromString response5 :: Maybe Response
     putStrLn $ "Request resourceList: " ++ show listResources
-    putStrLn $ "Response resourceList: " ++ response5
+    putStrLn $ "Response resourceList: " ++ show responseJson5
 
     threadDelay 1000000 -- 1秒待機
     hPutStrLn hin (encode readResource)
     hFlush hin
     response6 <- hGetLine hout
+    let responseJson6 = decode $ BU.fromString response6 :: Maybe Response
     putStrLn $ "Request readResource: " ++ show readResource
-    putStrLn $ "Response readResource: " ++ response6
+    putStrLn $ "Response readResource: " ++ show responseJson6
 
     threadDelay 1000000 -- 1秒待機
     hPutStrLn hin (encode listTools)
     hFlush hin
     response7 <- hGetLine hout
+    let responseJson7 = decode $ BU.fromString response7 :: Maybe Response
     putStrLn $ "Request listTools: " ++ show listTools
-    putStrLn $ "Response listTools: " ++ response7
+    putStrLn $ "Response listTools: " ++ show responseJson7
 
     threadDelay 1000000 -- 1秒待機
     hPutStrLn hin (encode readNote)
     hFlush hin
     response8 <- hGetLine hout
+    let responseJson8 = decode $ BU.fromString response8 :: Maybe Object
     putStrLn $ "Request readNote: " ++ show readNote
-    putStrLn $ "Response readNote: " ++ response8
+    putStrLn $ "Response readNote: " ++ show responseJson8

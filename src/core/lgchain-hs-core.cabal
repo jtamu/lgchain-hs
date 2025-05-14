@@ -67,6 +67,8 @@ library
     Lgchain.Core.Clients
     Lgchain.Core.Histories.ChatMessageHistories
     Lgchain.Core.Histories.ChatMessageHistories.RDB
+    Lgchain.Core.MCP.Clients.Requests
+    Lgchain.Core.MCP.Clients.Responses
     Lgchain.Core.Requests
     Lgchain.Core.Utils
     MyLib
@@ -92,6 +94,7 @@ library
     , template-haskell
     , text
     , transformers
+    , utf8-string
 
   -- Directories containing source files.
   hs-source-dirs:   src
