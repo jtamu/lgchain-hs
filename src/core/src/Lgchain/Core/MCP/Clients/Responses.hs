@@ -176,8 +176,8 @@ instance FromJSON ToolCallResult where
 getContentItemsFromSuccessResponse :: SuccessResponse ToolCallResult -> [ContentItem]
 getContentItemsFromSuccessResponse (SuccessResponse _ toolCallResult _) = content toolCallResult
 
-extractToolsFromSuccessResponse :: SuccessResponse ToolsListResult -> [Tool]
-extractToolsFromSuccessResponse (SuccessResponse _ toolsListResult _) = tools toolsListResult
+getToolsFromSuccessResponse :: SuccessResponse ToolsListResult -> [Tool]
+getToolsFromSuccessResponse (SuccessResponse _ toolsListResult _) = tools toolsListResult
 
 errorResponseToLgchainError :: ErrorResponse -> LgchainError
 errorResponseToLgchainError (ErrorResponse _ err _) =

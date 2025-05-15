@@ -67,6 +67,7 @@ library
     Lgchain.Core.Clients
     Lgchain.Core.Histories.ChatMessageHistories
     Lgchain.Core.Histories.ChatMessageHistories.RDB
+    Lgchain.Core.MCP.Clients
     Lgchain.Core.MCP.Clients.Requests
     Lgchain.Core.MCP.Clients.Responses
     Lgchain.Core.Requests

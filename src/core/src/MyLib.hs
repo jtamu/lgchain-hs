@@ -10,7 +10,7 @@ import Data.ByteString.Lazy.UTF8 qualified as BU
 import Data.Maybe (fromJust)
 import GHC.IO.Handle (hFlush, hGetLine)
 import Lgchain.Core.Clients (runOrFail)
-import Lgchain.Core.MCP.Clients (MCPClient (withConnection), StdioMCPClient, callTool, listTools)
+import Lgchain.Core.MCP.Clients (MCPClient (withMCPConnection), StdioMCPClient, callTool, listTools)
 import Lgchain.Core.MCP.Clients.Requests (Notification (Notification), Request (Request))
 import Lgchain.Core.MCP.Clients.Responses (Response, Tool (toolName), ToolCallResult, ToolsListResult)
 import System.Process (StdStream (CreatePipe), proc, std_in, std_out, withCreateProcess)
@@ -183,7 +183,7 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     putStrLn $ "Response readNote: " ++ show responseJson8
 
 hogeFunc :: IO ()
-hogeFunc = withConnection $ \(client :: StdioMCPClient) -> runOrFail $ do
+hogeFunc = withMCPConnection $ \(client :: StdioMCPClient) -> runOrFail $ do
   tools <- listTools client
   liftIO $ print [toolName tool | tool <- tools]
   contentItems <- callTool client "read-note" (object ["vault" .= ("obsidian" :: String), "filename" .= ("lgchain-hs.md" :: String)])
