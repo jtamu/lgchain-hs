@@ -3,14 +3,13 @@
 module MyLib (someFunc) where
 
 import Control.Concurrent (threadDelay)
-import Data.Aeson (decode, encode, object, (.=))
-import Data.Aeson.Types (Object)
+import Data.Aeson (Value, decode, encode, object, (.=))
 import Data.ByteString.Lazy.Char8 (hPutStrLn)
 import Data.ByteString.Lazy.UTF8 qualified as BU
 import Data.Maybe (fromJust)
 import GHC.IO.Handle (hFlush, hGetLine)
 import Lgchain.Core.MCP.Clients.Requests (Notification (Notification), Request (Request))
-import Lgchain.Core.MCP.Clients.Responses (Response)
+import Lgchain.Core.MCP.Clients.Responses (Response, ToolsListResult)
 import System.Process (StdStream (CreatePipe), proc, std_in, std_out, withCreateProcess)
 
 -- ping
@@ -115,7 +114,7 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     hPutStrLn hin (encode ping)
     hFlush hin
     response1 <- hGetLine hout
-    let responseJson1 = decode $ BU.fromString response1 :: Maybe Response
+    let responseJson1 = decode $ BU.fromString response1 :: Maybe (Response Value)
     putStrLn $ "Request ping: " ++ show ping
     putStrLn $ "Response ping: " ++ show responseJson1
 
@@ -123,7 +122,7 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     hPutStrLn hin (encode initialize)
     hFlush hin
     response2 <- hGetLine hout
-    let responseJson2 = decode $ BU.fromString response2 :: Maybe Response
+    let responseJson2 = decode $ BU.fromString response2 :: Maybe (Response Value)
     putStrLn $ "Request initialize: " ++ show initialize
     putStrLn $ "Response initialize: " ++ show responseJson2
 
@@ -136,7 +135,7 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     hPutStrLn hin (encode listPrompts)
     hFlush hin
     response3 <- hGetLine hout
-    let responseJson3 = decode $ BU.fromString response3 :: Maybe Response
+    let responseJson3 = decode $ BU.fromString response3 :: Maybe (Response Value)
     putStrLn $ "Request listPrompts: " ++ show listPrompts
     putStrLn $ "Response listPrompts: " ++ show responseJson3
 
@@ -144,7 +143,7 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     hPutStrLn hin (encode getPrompt)
     hFlush hin
     response4 <- hGetLine hout
-    let responseJson4 = decode $ BU.fromString response4 :: Maybe Response
+    let responseJson4 = decode $ BU.fromString response4 :: Maybe (Response Value)
     putStrLn $ "Request getPrompt: " ++ show getPrompt
     putStrLn $ "Response getPrompt: " ++ show responseJson4
 
@@ -152,7 +151,7 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     hPutStrLn hin (encode listResources)
     hFlush hin
     response5 <- hGetLine hout
-    let responseJson5 = decode $ BU.fromString response5 :: Maybe Response
+    let responseJson5 = decode $ BU.fromString response5 :: Maybe (Response Value)
     putStrLn $ "Request resourceList: " ++ show listResources
     putStrLn $ "Response resourceList: " ++ show responseJson5
 
@@ -160,7 +159,7 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     hPutStrLn hin (encode readResource)
     hFlush hin
     response6 <- hGetLine hout
-    let responseJson6 = decode $ BU.fromString response6 :: Maybe Response
+    let responseJson6 = decode $ BU.fromString response6 :: Maybe (Response Value)
     putStrLn $ "Request readResource: " ++ show readResource
     putStrLn $ "Response readResource: " ++ show responseJson6
 
@@ -168,7 +167,7 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     hPutStrLn hin (encode listTools)
     hFlush hin
     response7 <- hGetLine hout
-    let responseJson7 = decode $ BU.fromString response7 :: Maybe Response
+    let responseJson7 = decode $ BU.fromString response7 :: Maybe (Response ToolsListResult)
     putStrLn $ "Request listTools: " ++ show listTools
     putStrLn $ "Response listTools: " ++ show responseJson7
 
@@ -176,6 +175,6 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     hPutStrLn hin (encode readNote)
     hFlush hin
     response8 <- hGetLine hout
-    let responseJson8 = decode $ BU.fromString response8 :: Maybe Object
+    let responseJson8 = decode $ BU.fromString response8 :: Maybe (Response Value)
     putStrLn $ "Request readNote: " ++ show readNote
     putStrLn $ "Response readNote: " ++ show responseJson8
