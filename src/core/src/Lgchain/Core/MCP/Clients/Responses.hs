@@ -6,6 +6,8 @@ import Data.Aeson (FromJSON (parseJSON), withObject, (.:), (.:?))
 import Data.Map (Map)
 import GHC.Base ((<|>))
 import GHC.Generics (Generic)
+import Lgchain.Core.Clients (LgchainError (ApiError))
+import Lgchain.Core.Requests (vpack)
 
 newtype Response a = Response {getResponse :: Either ErrorResponse (SuccessResponse a)}
   deriving (Show, Generic)
@@ -106,3 +108,12 @@ instance FromJSON ToolsListResult where
     ToolsListResult
       <$> o .: "tools"
       <*> o .:? "nextCursor"
+
+extractToolsFromSuccessResponse :: SuccessResponse ToolsListResult -> [Tool]
+extractToolsFromSuccessResponse (SuccessResponse _ toolsListResult _) = tools toolsListResult
+
+errorResponseToLgchainError :: ErrorResponse -> LgchainError
+errorResponseToLgchainError (ErrorResponse _ err _) =
+  ApiError $
+    vpack $
+      "code: " ++ show (jsonRpcErrorCode err) ++ " message: " ++ jsonRpcErrorMessage err
