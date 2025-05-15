@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module MyLib (someFunc) where
+module MyLib where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
@@ -10,9 +10,9 @@ import Data.ByteString.Lazy.UTF8 qualified as BU
 import Data.Maybe (fromJust)
 import GHC.IO.Handle (hFlush, hGetLine)
 import Lgchain.Core.Clients (runOrFail)
-import Lgchain.Core.MCP.Clients (MCPClient (withConnection), StdioMCPClient, listTools)
+import Lgchain.Core.MCP.Clients (MCPClient (withConnection), StdioMCPClient, callTool, listTools)
 import Lgchain.Core.MCP.Clients.Requests (Notification (Notification), Request (Request))
-import Lgchain.Core.MCP.Clients.Responses (Response, Tool (toolName), ToolsListResult)
+import Lgchain.Core.MCP.Clients.Responses (Response, Tool (toolName), ToolCallResult, ToolsListResult)
 import System.Process (StdStream (CreatePipe), proc, std_in, std_out, withCreateProcess)
 
 -- ping
@@ -178,7 +178,7 @@ someFunc = withCreateProcess (proc "npx" ["-y", "obsidian-mcp", "/opt/app/docs/o
     hPutStrLn hin (encode readNote)
     hFlush hin
     response8 <- hGetLine hout
-    let responseJson8 = decode $ BU.fromString response8 :: Maybe (Response Value)
+    let responseJson8 = decode $ BU.fromString response8 :: Maybe (Response ToolCallResult)
     putStrLn $ "Request readNote: " ++ show readNote
     putStrLn $ "Response readNote: " ++ show responseJson8
 
@@ -186,3 +186,5 @@ hogeFunc :: IO ()
 hogeFunc = withConnection $ \(client :: StdioMCPClient) -> runOrFail $ do
   tools <- listTools client
   liftIO $ print [toolName tool | tool <- tools]
+  contentItems <- callTool client "read-note" (object ["vault" .= ("obsidian" :: String), "filename" .= ("lgchain-hs.md" :: String)])
+  liftIO $ print contentItems

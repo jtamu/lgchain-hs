@@ -1,8 +1,10 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Lgchain.Core.MCP.Clients where
 
 import Control.Monad.Except (ExceptT (ExceptT))
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (eitherDecode, encode)
+import Data.Aeson (Value, eitherDecode, encode, object, (.=))
 import Data.ByteString.Lazy.Char8 (hPutStrLn)
 import Data.ByteString.Lazy.UTF8 qualified as BU
 import Data.Maybe (fromJust)
@@ -12,7 +14,7 @@ import Lgchain.Core.Clients
     LgchainError (ParsingError),
   )
 import Lgchain.Core.MCP.Clients.Requests (Request (Request))
-import Lgchain.Core.MCP.Clients.Responses (Response, Tool, ToolsListResult, errorResponseToLgchainError, extractToolsFromSuccessResponse, getResponse)
+import Lgchain.Core.MCP.Clients.Responses (ContentItem, Response, Tool, ToolCallResult, ToolsListResult, errorResponseToLgchainError, extractToolsFromSuccessResponse, getContentItemsFromSuccessResponse, getResponse)
 import Lgchain.Core.Requests (vpack)
 import System.IO (Handle)
 import System.Process (CreateProcess (std_in), StdStream (CreatePipe), proc, std_out, withCreateProcess)
@@ -25,10 +27,27 @@ listToolsReq =
     "1"
     Nothing
 
+callToolReq :: String -> Value -> Request
+callToolReq toolName arguments =
+  Request
+    "2.0"
+    "tools/call"
+    "1"
+    ( Just
+        ( object
+            [ "name" .= toolName,
+              "arguments" .= arguments
+            ]
+        )
+    )
+
 class MCPClient a where
   withConnection :: (a -> IO ()) -> IO ()
 
   listTools :: a -> ExceptIO [Tool]
+
+  -- TODO
+  callTool :: a -> String -> Value -> ExceptIO [ContentItem]
 
 data StdioMCPClient = StdioMCPClient
   { stdin :: Handle,
@@ -49,3 +68,11 @@ instance MCPClient StdioMCPClient where
     let responseJson = eitherDecode $ BU.fromString response :: Either String (Response ToolsListResult)
     toolsListResult <- ExceptT $ return $ either (Left . ParsingError . vpack) (Right . getResponse) responseJson
     ExceptT $ return $ either (Left . errorResponseToLgchainError) (Right . extractToolsFromSuccessResponse) toolsListResult
+
+  callTool client toolName arguments = do
+    liftIO $ hPutStrLn (stdin client) (encode $ callToolReq toolName arguments)
+    liftIO $ hFlush (stdin client)
+    response <- liftIO $ hGetLine (stdout client)
+    let responseJson = eitherDecode $ BU.fromString response :: Either String (Response ToolCallResult)
+    toolCallResult <- ExceptT $ return $ either (Left . ParsingError . vpack) (Right . getResponse) responseJson
+    ExceptT $ return $ either (Left . errorResponseToLgchainError) (Right . getContentItemsFromSuccessResponse) toolCallResult
