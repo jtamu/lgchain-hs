@@ -4,7 +4,7 @@ module Lgchain.Core.MCP.Clients where
 
 import Control.Monad.Except (ExceptT (ExceptT))
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (eitherDecode, encode, object, (.=))
+import Data.Aeson (ToJSON (toJSON), eitherDecode, encode)
 import Data.ByteString.Lazy.Char8 (hPutStrLn)
 import Data.ByteString.Lazy.UTF8 qualified as BU
 import Data.Maybe (fromJust)
@@ -27,26 +27,20 @@ listToolsReq =
     "1"
     Nothing
 
-callToolReq :: String -> ToolCallParams -> Request
-callToolReq toolName arguments =
+callToolReq :: ToolCallParams -> Request
+callToolReq params =
   Request
     "2.0"
     "tools/call"
     "1"
-    ( Just
-        ( object
-            [ "name" .= toolName,
-              "arguments" .= arguments
-            ]
-        )
-    )
+    (Just $ toJSON params)
 
 class MCPClient a where
   withMCPConnection :: (a -> IO ()) -> IO ()
 
   listTools :: a -> ExceptIO [Tool]
 
-  callTool :: a -> String -> ToolCallParams -> ExceptIO [ContentItem]
+  callTool :: a -> ToolCallParams -> ExceptIO [ContentItem]
 
 data StdioMCPClient = StdioMCPClient
   { stdin :: Handle,
@@ -68,8 +62,8 @@ instance MCPClient StdioMCPClient where
     toolsListResult <- ExceptT $ return $ either (Left . ParsingError . vpack) (Right . getResponse) responseJson
     ExceptT $ return $ either (Left . errorResponseToLgchainError) (Right . getToolsFromSuccessResponse) toolsListResult
 
-  callTool client toolName arguments = do
-    liftIO $ hPutStrLn (stdin client) (encode $ callToolReq toolName arguments)
+  callTool client params = do
+    liftIO $ hPutStrLn (stdin client) (encode $ callToolReq params)
     liftIO $ hFlush (stdin client)
     response <- liftIO $ hGetLine (stdout client)
     let responseJson = eitherDecode $ BU.fromString response :: Either String (Response ToolCallResult)

@@ -32,4 +32,14 @@ instance ToJSON Notification where
 
 -- MCPのtools/callリクエスト用の型定義
 
-type ToolCallParams = M.Map Text Value
+data ToolCallParams = ToolCallParams
+  { toolCallParamsName :: ViewableText,
+    toolCallParamsArgs :: ToolCallArgs
+  }
+  deriving (Show, Generic)
+
+instance ToJSON ToolCallParams where
+  toJSON (ToolCallParams name args) =
+    object ["name" .= name, "arguments" .= args]
+
+type ToolCallArgs = M.Map Text Value

@@ -12,7 +12,7 @@ import Data.Maybe (fromJust)
 import GHC.IO.Handle (hFlush, hGetLine)
 import Lgchain.Core.Clients (runOrFail)
 import Lgchain.Core.MCP.Clients (MCPClient (withMCPConnection), StdioMCPClient, callTool, listTools)
-import Lgchain.Core.MCP.Clients.Requests (Notification (Notification), Request (Request))
+import Lgchain.Core.MCP.Clients.Requests (Notification (Notification), Request (Request), ToolCallParams (ToolCallParams))
 import Lgchain.Core.MCP.Clients.Responses (Response, Tool (toolName), ToolCallResult, ToolsListResult)
 import System.Process (StdStream (CreatePipe), proc, std_in, std_out, withCreateProcess)
 
@@ -187,5 +187,12 @@ hogeFunc :: IO ()
 hogeFunc = withMCPConnection $ \(client :: StdioMCPClient) -> runOrFail $ do
   tools <- listTools client
   liftIO $ print [toolName tool | tool <- tools]
-  contentItems <- callTool client "read-note" (M.fromList [("vault", String "obsidian"), ("filename", String "lgchain-hs.md")])
+  contentItems <-
+    callTool
+      client
+      ( ToolCallParams
+          "read-note"
+          ( M.fromList [("vault", String "obsidian"), ("filename", String "lgchain-hs.md")]
+          )
+      )
   liftIO $ print contentItems
