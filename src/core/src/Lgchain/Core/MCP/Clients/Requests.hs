@@ -4,11 +4,12 @@ module Lgchain.Core.MCP.Clients.Requests where
 
 import Data.Aeson (ToJSON (toJSON), Value, object, (.=))
 import GHC.Generics (Generic)
+import Lgchain.Core.Requests (ViewableText)
 
 data Request = Request
-  { requestJsonRpc :: String,
-    requestMethod :: String,
-    requestId :: String,
+  { requestJsonRpc :: ViewableText,
+    requestMethod :: ViewableText,
+    requestId :: ViewableText,
     requestParams :: Maybe Value
   }
   deriving (Show, Generic)
@@ -18,8 +19,8 @@ instance ToJSON Request where
     object $ ["jsonrpc" .= jsonrpc, "method" .= method, "id" .= requestId] ++ maybe [] (\p -> ["params" .= p]) params
 
 data Notification = Notification
-  { notificationJsonRpc :: String,
-    notificationMethod :: String
+  { notificationJsonRpc :: ViewableText,
+    notificationMethod :: ViewableText
   }
   deriving (Show, Generic)
 

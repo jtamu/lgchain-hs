@@ -7,7 +7,7 @@ import Data.Map (Map)
 import GHC.Base ((<|>))
 import GHC.Generics (Generic)
 import Lgchain.Core.Clients (LgchainError (ApiError))
-import Lgchain.Core.Requests (vpack)
+import Lgchain.Core.Requests (ViewableText, append, vpack)
 
 newtype Response a = Response {getResponse :: Either ErrorResponse (SuccessResponse a)}
   deriving (Show, Generic)
@@ -16,9 +16,9 @@ instance (FromJSON a) => FromJSON (Response a) where
   parseJSON v = Response <$> (Left <$> parseJSON v <|> Right <$> parseJSON v)
 
 data SuccessResponse a = SuccessResponse
-  { successResponseJsonRpc :: String,
+  { successResponseJsonRpc :: ViewableText,
     successResponseResult :: a,
-    successResponseId :: String
+    successResponseId :: ViewableText
   }
   deriving (Show, Generic)
 
@@ -31,7 +31,7 @@ instance (FromJSON a) => FromJSON (SuccessResponse a) where
 
 data JsonRpcError = JsonRpcError
   { jsonRpcErrorCode :: Int,
-    jsonRpcErrorMessage :: String
+    jsonRpcErrorMessage :: ViewableText
   }
   deriving (Show, Generic)
 
@@ -42,9 +42,9 @@ instance FromJSON JsonRpcError where
       <*> o .: "message"
 
 data ErrorResponse = ErrorResponse
-  { errorResponseJsonRpc :: String,
+  { errorResponseJsonRpc :: ViewableText,
     errorResponseError :: JsonRpcError,
-    errorResponseId :: String
+    errorResponseId :: ViewableText
   }
   deriving (Show, Generic)
 
@@ -58,8 +58,8 @@ instance FromJSON ErrorResponse where
 -- MCPのtools/listレスポンス用の型定義
 
 data SchemaProperty = SchemaProperty
-  { propertyType :: String,
-    propertyDescription :: Maybe String
+  { propertyType :: ViewableText,
+    propertyDescription :: Maybe ViewableText
   }
   deriving (Show, Generic)
 
@@ -70,9 +70,9 @@ instance FromJSON SchemaProperty where
       <*> o .:? "description"
 
 data InputSchema = InputSchema
-  { schemaType :: String,
-    schemaProperties :: Map String SchemaProperty,
-    schemaRequired :: [String]
+  { schemaType :: ViewableText,
+    schemaProperties :: Map ViewableText SchemaProperty,
+    schemaRequired :: [ViewableText]
   }
   deriving (Show, Generic)
 
@@ -84,8 +84,8 @@ instance FromJSON InputSchema where
       <*> o .: "required"
 
 data Tool = Tool
-  { toolName :: String,
-    toolDescription :: String,
+  { toolName :: ViewableText,
+    toolDescription :: ViewableText,
     toolInputSchema :: InputSchema
   }
   deriving (Show, Generic)
@@ -99,7 +99,7 @@ instance FromJSON Tool where
 
 data ToolsListResult = ToolsListResult
   { tools :: [Tool],
-    nextCursor :: Maybe String
+    nextCursor :: Maybe ViewableText
   }
   deriving (Show, Generic)
 
@@ -113,9 +113,9 @@ instance FromJSON ToolsListResult where
 
 -- リソース型
 data Resource = Resource
-  { resourceUri :: String,
-    resourceMimeType :: String,
-    resourceText :: Maybe String
+  { resourceUri :: ViewableText,
+    resourceMimeType :: ViewableText,
+    resourceText :: Maybe ViewableText
   }
   deriving (Show, Generic)
 
@@ -128,13 +128,13 @@ instance FromJSON Resource where
 
 -- コンテンツ項目の型を分離
 newtype TextContent = TextContent
-  { textValue :: String
+  { textValue :: ViewableText
   }
   deriving (Show, Generic)
 
 data BinaryContent = BinaryContent
-  { binaryData :: String,
-    binaryMimeType :: String
+  { binaryData :: ViewableText,
+    binaryMimeType :: ViewableText
   }
   deriving (Show, Generic)
 
@@ -182,5 +182,4 @@ getToolsFromSuccessResponse (SuccessResponse _ toolsListResult _) = tools toolsL
 errorResponseToLgchainError :: ErrorResponse -> LgchainError
 errorResponseToLgchainError (ErrorResponse _ err _) =
   ApiError $
-    vpack $
-      "code: " ++ show (jsonRpcErrorCode err) ++ " message: " ++ jsonRpcErrorMessage err
+    "code: " `append` vpack (show (jsonRpcErrorCode err)) `append` " message: " `append` jsonRpcErrorMessage err

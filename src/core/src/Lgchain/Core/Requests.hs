@@ -5,9 +5,9 @@
 
 module Lgchain.Core.Requests where
 
-import Data.Aeson (FromJSON (parseJSON), ToJSON, Value (String), object, withObject, (.:), (.:?), (.=))
+import Data.Aeson (FromJSON (parseJSON), FromJSONKey, FromJSONKeyFunction (FromJSONKeyText), ToJSON, Value (String), object, withObject, (.:), (.:?), (.=))
 import Data.Aeson.Key (fromText)
-import Data.Aeson.Types (toJSON)
+import Data.Aeson.Types (FromJSONKey (fromJSONKey), toJSON)
 import Data.List (isPrefixOf)
 import Data.Map qualified as M
 import Data.String (IsString (fromString))
@@ -40,6 +40,12 @@ vpack = ViewableText . pack
 
 vunpack :: ViewableText -> String
 vunpack (ViewableText s) = T.unpack s
+
+append :: ViewableText -> ViewableText -> ViewableText
+append (ViewableText s1) (ViewableText s2) = ViewableText $ T.append s1 s2
+
+instance FromJSONKey ViewableText where
+  fromJSONKey = FromJSONKeyText viewable
 
 instance IsString ViewableText where
   fromString = vpack
