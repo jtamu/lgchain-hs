@@ -3,6 +3,8 @@
 module Lgchain.Core.MCP.Clients.Requests where
 
 import Data.Aeson (ToJSON (toJSON), Value, object, (.=))
+import Data.Map qualified as M
+import Data.Text (Text)
 import GHC.Generics (Generic)
 import Lgchain.Core.Requests (ViewableText)
 
@@ -27,3 +29,7 @@ data Notification = Notification
 instance ToJSON Notification where
   toJSON (Notification jsonrpc method) =
     object ["jsonrpc" .= jsonrpc, "method" .= method]
+
+-- MCPのtools/callリクエスト用の型定義
+
+type ToolCallParams = M.Map Text Value

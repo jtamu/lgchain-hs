@@ -4,9 +4,10 @@ module MyLib where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (Value, decode, encode, object, (.=))
+import Data.Aeson (Value (String), decode, encode, object, (.=))
 import Data.ByteString.Lazy.Char8 (hPutStrLn)
 import Data.ByteString.Lazy.UTF8 qualified as BU
+import Data.Map qualified as M
 import Data.Maybe (fromJust)
 import GHC.IO.Handle (hFlush, hGetLine)
 import Lgchain.Core.Clients (runOrFail)
@@ -186,5 +187,5 @@ hogeFunc :: IO ()
 hogeFunc = withMCPConnection $ \(client :: StdioMCPClient) -> runOrFail $ do
   tools <- listTools client
   liftIO $ print [toolName tool | tool <- tools]
-  contentItems <- callTool client "read-note" (object ["vault" .= ("obsidian" :: String), "filename" .= ("lgchain-hs.md" :: String)])
+  contentItems <- callTool client "read-note" (M.fromList [("vault", String "obsidian"), ("filename", String "lgchain-hs.md")])
   liftIO $ print contentItems

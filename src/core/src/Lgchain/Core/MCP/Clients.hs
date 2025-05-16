@@ -4,7 +4,7 @@ module Lgchain.Core.MCP.Clients where
 
 import Control.Monad.Except (ExceptT (ExceptT))
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (Value, eitherDecode, encode, object, (.=))
+import Data.Aeson (eitherDecode, encode, object, (.=))
 import Data.ByteString.Lazy.Char8 (hPutStrLn)
 import Data.ByteString.Lazy.UTF8 qualified as BU
 import Data.Maybe (fromJust)
@@ -13,7 +13,7 @@ import Lgchain.Core.Clients
   ( ExceptIO,
     LgchainError (ParsingError),
   )
-import Lgchain.Core.MCP.Clients.Requests (Request (Request))
+import Lgchain.Core.MCP.Clients.Requests (Request (Request), ToolCallParams)
 import Lgchain.Core.MCP.Clients.Responses (ContentItem, Response, Tool, ToolCallResult, ToolsListResult, errorResponseToLgchainError, getContentItemsFromSuccessResponse, getResponse, getToolsFromSuccessResponse)
 import Lgchain.Core.Requests (vpack)
 import System.IO (Handle)
@@ -27,7 +27,7 @@ listToolsReq =
     "1"
     Nothing
 
-callToolReq :: String -> Value -> Request
+callToolReq :: String -> ToolCallParams -> Request
 callToolReq toolName arguments =
   Request
     "2.0"
@@ -46,8 +46,7 @@ class MCPClient a where
 
   listTools :: a -> ExceptIO [Tool]
 
-  -- TODO
-  callTool :: a -> String -> Value -> ExceptIO [ContentItem]
+  callTool :: a -> String -> ToolCallParams -> ExceptIO [ContentItem]
 
 data StdioMCPClient = StdioMCPClient
   { stdin :: Handle,
