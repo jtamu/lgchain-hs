@@ -19,7 +19,7 @@ import Data.Map qualified as M
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Language.Haskell.TH.Syntax (Lift)
-import Lgchain.Core.Requests qualified as Core (JsonSchema (properties), JsonSchemaDefinition (JsonSchemaDefinition), JsonSchemaProperty (JsonSchemaProperty), PropertyType (BooleanType, DoubleType, IntType, ListType, StringType), Role (Assistant, System, User))
+import Lgchain.Core.Requests qualified as Core (Function (parameters), FunctionParameter (FunctionParameter), JsonSchema (properties), JsonSchemaDefinition (JsonSchemaDefinition), JsonSchemaProperty (JsonSchemaProperty), PropertyType (BooleanType, DoubleType, IntType, ListType, StringType), Role (Assistant, System, User), Tool (Tool), functionDescription, functionName)
 
 newtype Role = Role Core.Role
 
@@ -119,9 +119,64 @@ instance ToJSON GenerationConfig where
   toJSON (GenerationConfig responseMimeType responseSchema) =
     object ["response_mime_type" .= responseMimeType, "response_schema" .= responseSchema]
 
+-- | パラメータ型
+data Parameter = Parameter
+  { parameterType :: PropertyType,
+    parameterDescription :: Maybe Text,
+    parameterEnum :: Maybe [Text],
+    parameterProperties :: Maybe (M.Map Text Parameter),
+    parameterRequired :: Maybe [Text]
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON Parameter where
+  parseJSON = withObject "Parameter" $ \v ->
+    Parameter
+      <$> v .: "type"
+      <*> v .:? "description"
+      <*> v .:? "enum"
+      <*> v .:? "properties"
+      <*> v .:? "required"
+
+instance ToJSON Parameter where
+  toJSON (Parameter paramType desc enum props required) =
+    object $
+      ["type" .= paramType]
+        ++ maybe [] (\x -> ["description" .= x]) desc
+        ++ maybe [] (\x -> ["enum" .= x]) enum
+        ++ maybe [] (\x -> ["properties" .= x]) props
+        ++ maybe [] (\x -> ["required" .= x]) required
+
+-- | 関数宣言型
+data FunctionDeclaration = FunctionDeclaration
+  { name :: Text,
+    description :: Text,
+    parameters :: Parameter
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON FunctionDeclaration
+
+instance ToJSON FunctionDeclaration
+
+-- | ツール型
+newtype Tool = Tool
+  { functionDeclarations :: [FunctionDeclaration]
+  }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON Tool where
+  parseJSON = withObject "Tool" $ \v ->
+    Tool <$> v .: "function_declarations"
+
+instance ToJSON Tool where
+  toJSON (Tool functionDeclarations) =
+    object ["function_declarations" .= functionDeclarations]
+
 -- | リクエストのメインデータ型
 data GenerateContentRequest = GenerateContentRequest
   { contents :: [Content],
+    tools :: Maybe [Tool],
     generationConfig :: Maybe GenerationConfig
   }
   deriving (Show, Eq, Generic)
@@ -146,3 +201,42 @@ mapCommonSchemaProperty (Core.JsonSchemaProperty _ propertyType items _) =
       Core.DoubleType -> DoubleType
       Core.BooleanType -> BooleanType
       Core.ListType -> ListType
+
+mapCommonTool :: Core.Tool -> Tool
+mapCommonTool tool = Tool [mapCommonToolToFunc tool]
+
+mapCommonToolToFunc :: Core.Tool -> FunctionDeclaration
+mapCommonToolToFunc (Core.Tool _ func) = FunctionDeclaration name description parameters
+  where
+    name = Core.functionName func
+    description = Core.functionDescription func
+    parameters = mapCommonFunctionParameter (Core.parameters func)
+
+mapCommonFunctionParameter :: Core.FunctionParameter -> Parameter
+mapCommonFunctionParameter (Core.FunctionParameter _ paramProperties paramRequired _) =
+  Parameter
+    { parameterType = ObjectType,
+      parameterDescription = Nothing,
+      parameterEnum = Nothing,
+      parameterProperties = Just $ M.map convertJsonSchemaProperty paramProperties,
+      parameterRequired = Just paramRequired
+    }
+
+-- | JsonSchemaPropertyをParameterに変換する
+convertJsonSchemaProperty :: Core.JsonSchemaProperty -> Parameter
+convertJsonSchemaProperty (Core.JsonSchemaProperty desc propType _ _) =
+  Parameter
+    { parameterType = mapPropertyType propType,
+      parameterDescription = desc,
+      parameterEnum = Nothing,
+      parameterProperties = Nothing,
+      parameterRequired = Nothing
+    }
+
+-- | Core.PropertyTypeをPropertyTypeに変換
+mapPropertyType :: Core.PropertyType -> PropertyType
+mapPropertyType Core.IntType = IntType
+mapPropertyType Core.StringType = StringType
+mapPropertyType Core.DoubleType = DoubleType
+mapPropertyType Core.BooleanType = BooleanType
+mapPropertyType Core.ListType = ListType

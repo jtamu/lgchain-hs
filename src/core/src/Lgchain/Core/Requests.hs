@@ -183,15 +183,17 @@ instance FromJSON ResponseFormat where
 data ReqBody = ReqBody
   { model :: String,
     messages :: Prompt,
-    responseFormat :: Maybe ResponseFormat
+    responseFormat :: Maybe ResponseFormat,
+    tools :: Maybe [Tool]
   }
   deriving (Eq, Show, Generic)
 
 instance ToJSON ReqBody where
-  toJSON (ReqBody model messages responseFormat) =
+  toJSON (ReqBody model messages responseFormat tools) =
     object $
       ["model" .= model, "messages" .= messages]
         ++ maybe [] (\x -> ["response_format" .= x]) responseFormat
+        ++ maybe [] (\x -> ["tools" .= x]) tools
 
 instance FromJSON JsonSchemaProperty where
   parseJSON = withObject "JsonSchemaProperty" $ \v ->
@@ -220,6 +222,7 @@ instance FromJSON ReqBody where
       <$> v .: "model"
       <*> v .: "messages"
       <*> v .:? "response_format"
+      <*> v .:? "tools"
 
 class (FromJSON a, Show a, Eq a) => JsonSchemaConvertable a where
   convertJson :: a -> JsonSchemaDefinition
@@ -271,3 +274,116 @@ foldSchemaProperty (AppT ListT (ConT a)) = case foldSchemaProperty (ConT a) of
     Right $ JsonSchemaProperty {description = Nothing, propertyType = ListType, items = Just prop, uniqueItems = Just True}
   Left err -> Left err
 foldSchemaProperty _ = Left "Unsupported type"
+
+data ToolType = FunctionTool deriving (Eq, Show, Generic)
+
+instance ToJSON ToolType where
+  toJSON FunctionTool = String $ pack "function"
+
+instance FromJSON ToolType where
+  parseJSON (String s)
+    | s == pack "function" = pure FunctionTool
+  parseJSON _ = fail "Expected \"function\""
+
+data FunctionParameter = FunctionParameter
+  { paramType :: Text,
+    paramProperties :: M.Map Text JsonSchemaProperty,
+    paramRequired :: [Text],
+    additionalProperties :: Maybe Bool
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON FunctionParameter where
+  toJSON (FunctionParameter paramType paramProperties paramRequired additionalProperties) =
+    object $
+      [ "type" .= paramType,
+        "properties" .= object [fromText k .= v | (k, v) <- M.toList paramProperties],
+        "required" .= paramRequired
+      ]
+        ++ maybe [] (\x -> ["additionalProperties" .= x]) additionalProperties
+
+instance FromJSON FunctionParameter where
+  parseJSON = withObject "FunctionParameter" $ \v ->
+    FunctionParameter
+      <$> v .: "type"
+      <*> v .: "properties"
+      <*> v .: "required"
+      <*> v .:? "additionalProperties"
+
+data Function = Function
+  { functionName :: Text,
+    functionDescription :: Text,
+    parameters :: FunctionParameter,
+    strict :: Maybe Bool
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON Function where
+  toJSON (Function functionName functionDescription parameters strict) =
+    object $
+      [ "name" .= functionName,
+        "description" .= functionDescription,
+        "parameters" .= parameters
+      ]
+        ++ maybe [] (\x -> ["strict" .= x]) strict
+
+instance FromJSON Function where
+  parseJSON = withObject "Function" $ \v ->
+    Function
+      <$> v .: "name"
+      <*> v .: "description"
+      <*> v .: "parameters"
+      <*> v .:? "strict"
+
+data Tool = Tool
+  { toolType :: ToolType,
+    function :: Function
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON Tool where
+  toJSON (Tool toolType function) =
+    object ["type" .= toolType, "function" .= function]
+
+instance FromJSON Tool where
+  parseJSON = withObject "Tool" $ \v ->
+    Tool
+      <$> v .: "type"
+      <*> v .: "function"
+
+exampleTool :: Tool
+exampleTool =
+  Tool
+    { toolType = FunctionTool,
+      function =
+        Function
+          { functionName = "get_weather",
+            functionDescription = "Retrieves current weather for the given location.",
+            parameters =
+              FunctionParameter
+                { paramType = "object",
+                  paramProperties =
+                    M.fromList
+                      [ ( "location",
+                          JsonSchemaProperty
+                            { description = Just "City and country e.g. Tokyo, Japan",
+                              propertyType = StringType,
+                              items = Nothing,
+                              uniqueItems = Nothing
+                            }
+                        ),
+                        ( "units",
+                          JsonSchemaProperty
+                            { description = Just "Units the temperature will be returned in.",
+                              propertyType = StringType,
+                              items = Nothing,
+                              uniqueItems = Nothing
+                            }
+                        )
+                      ],
+                  paramRequired = ["location"],
+                  additionalProperties = Nothing
+                },
+            strict = Nothing
+          }
+    }

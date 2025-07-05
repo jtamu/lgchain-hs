@@ -71,6 +71,7 @@ library
     Lgchain.Core.MCP.Clients.Requests
     Lgchain.Core.MCP.Clients.Responses
     Lgchain.Core.Requests
+    Lgchain.Core.Responses
     Lgchain.Core.Utils
     MyLib
 

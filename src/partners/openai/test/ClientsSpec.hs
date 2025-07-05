@@ -154,7 +154,7 @@ spec = describe "Clients" $ do
                 [ ReqMessage System "system message",
                   ReqMessage User "user message"
                 ]
-        let resBody = ResBody {choices = [ResMessage (ResMessageContent "assistant" "response message")]}
+        let resBody = ResBody {choices = [ResMessage (ResMessageContent "assistant" (Just "response message") Nothing)]}
         let output = buildOutput chain resBody
         (strOutput =<< output) `shouldBe` Right "response message"
 
@@ -173,12 +173,15 @@ spec = describe "Clients" $ do
                     [ ResMessage
                         ( ResMessageContent
                             "assistant"
-                            [r|
+                            ( Just
+                                [r|
                               {
                                 "ingredients": ["ing1", "ing2"],
                                 "steps": ["step1", "step2"]
                               }
                             |]
+                            )
+                            Nothing
                         )
                     ]
                 }

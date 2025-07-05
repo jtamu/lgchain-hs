@@ -170,7 +170,7 @@ spec = describe "Clients" $ do
                 [ ReqMessage System "system message",
                   ReqMessage User "user message"
                 ]
-        let resBody = GenerateContentResponse [Candidate (Res.Content [Res.Part "response message"] "assistant")]
+        let resBody = GenerateContentResponse [Candidate (Res.Content [Res.Part (Just "response message") Nothing] "assistant")]
         let output = buildOutput chain resBody
         (strOutput =<< output) `shouldBe` Right "response message"
 
@@ -188,12 +188,15 @@ spec = describe "Clients" $ do
                 [ Candidate
                     ( Res.Content
                         [ Res.Part
-                            [r|
+                            ( Just
+                                [r|
                               {
                                 "ingredients": ["ing1", "ing2"],
                                 "steps": ["step1", "step2"]
                               }
                             |]
+                            )
+                            Nothing
                         ]
                         "assistant"
                     )

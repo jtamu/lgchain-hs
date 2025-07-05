@@ -11,8 +11,8 @@ import Data.Map qualified as M
 import Data.Maybe (fromJust)
 import GHC.Generics (Generic)
 import Lgchain.Core.Agents (AgentNode (run))
-import Lgchain.Core.Clients (Chain (Chain, StrChain), ExceptIO, invoke, runOrFail, strOutput, structedOutput)
-import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), ViewableText, deriveJsonSchema, vunpack)
+import Lgchain.Core.Clients (Chain (Chain, StrChain, ToolChain), ExceptIO, invoke, runOrFail, strOutput, structedOutput, toolOutput)
+import Lgchain.Core.Requests (ReqMessage (ReqMessage), Role (System, User), ViewableText, deriveJsonSchema, exampleTool, vunpack)
 import Lgchain.Gemini.Clients (ChatGemini (ChatGemini), GeminiModelName (GEMINI_1_5_FLASH))
 import Text.RawString.QQ (r)
 
@@ -156,4 +156,13 @@ someFunc = runOrFail $ do
   let formatMap = M.fromList [("{dish}", "カレー")]
   result <- invoke chain (Just formatMap)
   res <- ExceptT $ return $ structedOutput result
+  liftIO $ print res
+
+toolCallFunc :: IO ()
+toolCallFunc = runOrFail $ do
+  let prompt = [ReqMessage System "You are a helpful assistant.", ReqMessage User "How is the weather in Tokyo?"]
+  let model = ChatGemini GEMINI_1_5_FLASH
+  let chain = ToolChain model prompt [exampleTool]
+  result <- invoke chain Nothing
+  res <- ExceptT $ return $ toolOutput result
   liftIO $ print res
